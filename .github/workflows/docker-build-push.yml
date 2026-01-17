@@ -41,7 +41,12 @@ jobs:
         run: python scripts/init_db.py
 
       - name: Run unit tests
-        run: pytest tests/ -v --tb=short -m "not integration"
+        run: |
+          pytest tests/ -v --tb=short \
+            --ignore=tests/test_api.py \
+            --ignore=tests/test_all_api_endpoints.py \
+            --ignore=tests/test_export_import_loop.py \
+            --ignore=tests/test_stage.py
 
   build-and-push:
     needs: test
