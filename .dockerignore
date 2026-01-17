@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# Flask
+instance/
+.webassets-cache
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Datenbank (wird über Volume gemountet)
+database/
+*.db
+*.sqlite
+*.sqlite3
+
+# Media Files (wird über Volume gemountet)
+media/
+
+# Dokumentation
+README.md
+*.md
+
+# Test & Development
+tests/
+backup_*/
+export_*/
+*.tar.gz
+
+# Temporäre Dateien
+*.log
+*.tmp
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Scripts die nicht im Container benötigt werden
+scripts/batch_import.py
+scripts/test_images.py
+scripts/reprocess_images.py
+
+# Test/Entwicklung
+example_articles.json
+test_*.py
+
+# Symlink
+wasserzeichen/
+wasserzeichen

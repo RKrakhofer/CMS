@@ -1,0 +1,3 @@
+# Log-Verzeichnis für CMS
+# security.log - Sicherheitsrelevante Events (Artikel CRUD, Uploads, API)
+# app.log - Allgemeine Application Events

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}{% if article %}{{ article.title }} bearbeiten{% else %}Neuer Artikel{% endif %} - {{ SITE_TITLE }}{% endblock %}
+
+{% block content %}
+<div class="editor-container">
+    <h1>{% if article %}Artikel bearbeiten{% else %}Neuer Artikel{% endif %}</h1>
+    
+    <form method="POST" enctype="multipart/form-data" class="article-form">
+        <div class="form-group">
+            <label for="title">Titel *</label>
+            <input type="text" id="title" name="title" value="{{ article.title if article else '' }}" required class="form-control">
+        </div>
+        
+        <div class="form-group">
+            <label for="author">Autor</label>
+            <input type="text" id="author" name="author" value="{{ article.author if article else '' }}" class="form-control">
+        </div>
+        
+        <div class="form-group">
+            <label for="content">Inhalt (Markdown) *</label>
+            <textarea id="content" name="content" rows="20" required class="form-control code-editor">{{ article.content if article else '' }}</textarea>
+            <small class="help-text">
+                Markdown-Syntax: **fett**, *kursiv*, # Überschrift, [Link](url), ![Bild](url)
+            </small>
+        </div>
+        
+        <div class="form-group">
+            <label for="tags">Tags (komma-getrennt)</label>
+            <input type="text" id="tags" name="tags" value="{{ article.tags_str if article else '' }}" class="form-control" placeholder="news, tech, wichtig">
+        </div>
+        
+        <div class="form-group">
+            <label for="created_at">Erstellungsdatum</label>
+            <input type="datetime-local" id="created_at" name="created_at" value="{{ article.created_at_input if article else '' }}" class="form-control">
+            <small class="help-text">Datum und Uhrzeit der Artikelerstellung</small>
+        </div>
+        
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="published" {% if article and article.published %}checked{% endif %}>
+                Veröffentlicht
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <label for="images">Bilder hochladen</label>
+            <input type="file" id="images" name="images" multiple accept="image/*" class="form-control">
+            <small class="help-text">JPG, PNG, GIF, WebP (max 16MB pro Bild)</small>
+        </div>
+        
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="add_watermark">
+                Logo/Wasserzeichen zu Bildern hinzufügen
+            </label>
+            <small class="help-text">Benötigt logo.png im Projektordner</small>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{{ url_for('view_article', article_id=article.id) if article else url_for('index') }}" class="btn btn-secondary">Abbrechen</a>
+            <button type="submit" class="btn btn-primary">💾 Speichern</button>
+        </div>
+    </form>
+    
+    {% if article and images %}
+    <div class="existing-images">
+        <h3>Vorhandene Bilder</h3>
+        <div class="images-grid">
+            {% for image in images %}
+            <div class="image-item">
+                <img src="{{ url_for('serve_image', filename=image.filename) }}" alt="{{ image.alt_text or '' }}">
+                <div class="image-markdown">
+                    <code class="markdown-code">![Bild]({{ url_for('serve_image', filename=image.filename) }})</code>
+                    <button type="button" class="btn btn-sm btn-copy" onclick="copyMarkdown(this, '![Bild]({{ url_for('serve_image', filename=image.filename) }})')">📋 Kopieren</button>
+                </div>
+                <form method="POST" action="{{ url_for('delete_image', image_id=image.id) }}" onsubmit="return confirm('Bild löschen?');" style="margin-top: 0.5rem;">
+                    <button type="submit" class="btn btn-sm btn-danger" style="width: 100%;">🗑️ Löschen</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function copyMarkdown(btn, text) {
+    navigator.clipboard.writeText(text).then(function() {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✓ Kopiert!';
+        btn.classList.add('btn-success');
+        setTimeout(function() {
+            btn.innerHTML = originalText;
+            btn.classList.remove('btn-success');
+        }, 2000);
+    }).catch(function(err) {
+        alert('Kopieren fehlgeschlagen: ' + err);
+    });
+}
+</script>
+{% endblock %}

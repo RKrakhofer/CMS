@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  cms-app:
+    # Lokaler Build
+    build: .
+    # Alternativ: Image von GHCR (siehe GHCR.md)
+    # image: ghcr.io/DEIN-USERNAME/fakedaily:latest
+    container_name: cms
+    ports:
+      - "5001:5001"
+    volumes:
+      # Persistente Datenbank
+      - ./database:/app/database
+      # Persistente Bilder
+      - ./media:/app/media
+      # Optional: Logo mounten
+      - ./logo.png:/app/logo.png:ro
+    environment:
+      - FLASK_ENV=production
+      - FLASK_DEBUG=false
+      - PYTHONUNBUFFERED=1
+      # Optional: App unter Sub-Path deployen (z.B. /cms)
+      - APP_PREFIX=/cms
+      # Optional: Site-Titel ändern
+      - SITE_TITLE=FakeDaily
+      # Optional: Base-URL für externe Links
+      # - BASE_URL=https://your-domain.com    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

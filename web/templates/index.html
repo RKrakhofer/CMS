@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Artikel - {{ SITE_TITLE }}{% endblock %}
+
+{% block content %}
+<div class="header-section">
+    <h1>Artikel-Verwaltung</h1>
+    
+    <form method="GET" action="{{ url_for('index') }}" class="search-form">
+        <input type="text" name="q" placeholder="Artikel durchsuchen..." value="{{ search_query }}" class="search-input">
+        <button type="submit" class="btn btn-secondary">🔍 Suchen</button>
+    </form>
+    
+    <div class="filter-buttons">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Alle</a>
+        <a href="{{ url_for('index', published='yes') }}" class="btn btn-secondary">Nur Veröffentlichte</a>
+    </div>
+</div>
+
+{% if articles %}
+<div class="articles-grid">
+    {% for article in articles %}
+    <div class="article-card" style="cursor: pointer; position: relative;" title="Weiterlesen" onclick="window.location='{{ url_for('view_article', article_id=article.id) }}'">
+        <div class="article-header">
+            <h2>
+                <a href="{{ url_for('view_article', article_id=article.id) }}" onclick="event.stopPropagation()">{{ article.title }}</a>
+            </h2>
+            {% if article.published %}
+                <span class="badge badge-success">Veröffentlicht</span>
+            {% else %}
+                <span class="badge badge-draft">Entwurf</span>
+            {% endif %}
+        </div>
+        
+        <div class="article-meta">
+            {% if article.author %}
+                <span>👤 {{ article.author }}</span>
+            {% endif %}
+            <span>📅 {{ article.created_at|datetime }}</span>
+        </div>
+        
+        {% if article.tags %}
+        <div class="article-tags">
+            {% for tag in article.tags %}
+                <span class="tag">{{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <div class="article-preview markdown-content">
+            {{ article.excerpt_html|safe }}{% if article.content|length > 200 %}<a href="{{ url_for('view_article', article_id=article.id) }}" onclick="event.stopPropagation()">...</a>{% endif %}
+        </div>
+        
+        <div class="article-actions">
+            <a href="{{ url_for('view_article', article_id=article.id) }}" class="btn btn-sm" onclick="event.stopPropagation()">Ansehen</a>
+            <a href="{{ url_for('edit_article', article_id=article.id) }}" class="btn btn-sm btn-secondary" onclick="event.stopPropagation()">Bearbeiten</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <p>Keine Artikel gefunden.</p>
+    <a href="{{ url_for('new_article') }}" class="btn btn-primary">Ersten Artikel erstellen</a>
+</div>
+{% endif %}
+{% endblock %}

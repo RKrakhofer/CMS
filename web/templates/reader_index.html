@@ -1,0 +1,56 @@
+{% extends "reader_base.html" %}
+
+{% block title %}{{ SITE_TITLE }} - Nachrichten{% endblock %}
+
+{% block content %}
+<div class="reader-header">
+    <h1>Aktuelle Artikel{% if current_tag %} - Tag: {{ current_tag }}{% endif %}</h1>
+    {% if current_tag %}
+        <p class="tag-filter-info">
+            <a href="{{ url_for('reader_index') }}" class="clear-filter">✕ Filter entfernen</a>
+        </p>
+    {% endif %}
+</div>
+
+{% if articles %}
+<div class="articles-list">
+    {% for article in articles %}
+    <article class="article-card">
+        <div class="article-header">
+            <h2>
+                <a href="{{ url_for('reader_article', article_id=article.id) }}">{{ article.title }}</a>
+            </h2>
+            <time class="article-date">{{ article.created_at|datetime }}</time>
+        </div>
+        
+        {% if article.author %}
+        <div class="article-author">
+            <span>Von {{ article.author }}</span>
+        </div>
+        {% endif %}
+        
+        <div class="article-excerpt markdown-content">
+            {{ article.excerpt_html|safe }}
+            {% if article.content|length > 300 %}<a href="{{ url_for('reader_article', article_id=article.id) }}">...</a>{% endif %}
+        </div>
+        
+        {% if article.tags %}
+        <div class="article-tags">
+            {% for tag in article.tags %}
+                {% if current_tag and tag.lower() == current_tag.lower() %}
+                    <span class="tag tag-active">{{ tag }}</span>
+                {% else %}
+                    <a href="{{ url_for('reader_tag', tag=tag) }}" class="tag">{{ tag }}</a>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <p>Keine Artikel verfügbar.</p>
+</div>
+{% endif %}
+{% endblock %}

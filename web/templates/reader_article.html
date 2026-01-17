@@ -1,0 +1,48 @@
+{% extends "reader_base.html" %}
+
+{% block title %}{{ article.title }} - {{ SITE_TITLE }}{% endblock %}
+
+{% block content %}
+<article class="article-full">
+    <header class="article-full-header">
+        <h1>{{ article.title }}</h1>
+        
+        <div class="article-meta">
+            <time>{{ article.created_at|datetime }}</time>
+            {% if article.author %}
+                <span class="separator">•</span>
+                <span>Von {{ article.author }}</span>
+            {% endif %}
+        </div>
+        
+        {% if article.tags %}
+        <div class="article-tags">
+            {% for tag in article.tags %}
+                <a href="{{ url_for('reader_tag', tag=tag) }}" class="tag">{{ tag }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </header>
+    
+    {% if images %}
+    <div class="article-images">
+        {% for image in images %}
+        <figure class="article-image">
+            <img src="{{ url_for('serve_image', filename=image.filename) }}" alt="{{ image.alt_text or article.title }}">
+            {% if image.caption %}
+                <figcaption>{{ image.caption }}</figcaption>
+            {% endif %}
+        </figure>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="article-content markdown-content">
+        {{ article.content_html|safe }}
+    </div>
+    
+    <footer class="article-footer">
+        <a href="{{ url_for('reader_index') }}" class="back-link">← Zurück zur Übersicht</a>
+    </footer>
+</article>
+{% endblock %}

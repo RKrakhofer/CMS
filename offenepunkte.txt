@@ -1,0 +1,12 @@
+Kann ich Whatsapp-Chats oder Channels exportieren?
+
+Antwort: Ja, du kannst WhatsApp-Chats exportieren. In der WhatsApp-App gibt es die Funktion "Chat exportieren" im Chat-Menü. Damit kannst du einzelne Chats (mit oder ohne Medien) als Textdatei exportieren und per E-Mail oder in andere Apps teilen. Channels lassen sich derzeit nicht direkt exportieren, aber einzelne Nachrichten können kopiert werden. Notizen an dich selbst in WhatsApp können ebenfalls nicht direkt exportiert werden.
+
+
+Ich brauche eine Datenbank für Artikel und Bilder
+    Die Artikel in einem format mit formatierungsanweisung, vielleicht Markdown.
+    Die Bilder entweder als Referenz (URL oder externes File), oder als BLOB.
+
+Möglichkeiten, die Artikel und Bilder auf komfortable Weise in die DB zu bekommen.
+
+Möglichkeit, ein kleines Bild (Logo) in die Ecke eines Bildes zu platzieren - die Größe des Logos soll in einem definierten Verhältnis zur Bildgröße stehen.

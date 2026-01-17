@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Database
+database/
+*.db
+*.sqlite
+*.sqlite3
+
+# Media Files (optional - auskommentieren wenn Bilder versioniert werden sollen)
+media/images/*
+!media/images/.gitkeep
+
+# Flask
+instance/
+.webassets-cache
+*.pyc
+
+# Logs
+*.log
+logs/*.log
+!logs/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+*.key
+*.pem
+
+# Test files
+test_image.*
+logo.png
+history.md
+history.txt
+
+# Temporary
+*.tmp
+*.bak
+*.swp
+
+# Symlinks
+wasserzeichen
+wasserzeichen/

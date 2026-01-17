@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}WhatsApp Export - {{ article.title }}{% endblock %}
+
+{% block content %}
+<div class="whatsapp-export">
+    <div class="export-header">
+        <h1>📱 WhatsApp Export</h1>
+        <p class="subtitle">{{ article.title }}</p>
+    </div>
+    
+    <div class="export-section">
+        <div class="section-header">
+            <h2>📝 Text</h2>
+            <button class="btn btn-primary" onclick="copyText()">📋 Text kopieren</button>
+        </div>
+        <div class="whatsapp-preview">
+            <pre id="whatsapp-text">{{ whatsapp_text }}</pre>
+        </div>
+        <small class="help-text">
+            WhatsApp-Formatierung: *fett*, _kursiv_, ~durchgestrichen~, ```code```
+        </small>
+    </div>
+    
+    {% if images %}
+    <div class="export-section">
+        <div class="section-header">
+            <h2>🖼️ Bilder (mit Logo)</h2>
+            <p class="help-text">Rechtsklick → "Bild speichern" oder direkt in WhatsApp einfügen</p>
+        </div>
+        <div class="export-images">
+            {% for image in images %}
+            <div class="export-image-item">
+                <img src="{{ url_for('serve_image', filename=image.filename) }}" 
+                     alt="{{ image.alt_text or article.title }}"
+                     id="image-{{ loop.index }}">
+                <div class="image-actions">
+                    <a href="{{ url_for('serve_image', filename=image.filename) }}" 
+                       download="{{ image.filename }}" 
+                       class="btn btn-sm btn-secondary">💾 Download</a>
+                    <button class="btn btn-sm btn-primary" onclick="copyImage('image-{{ loop.index }}')">
+                        📋 Bild kopieren
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="export-instructions">
+        <h3>📲 So postest du in WhatsApp:</h3>
+        <ol>
+            <li><strong>Text kopieren:</strong> Klicke auf "Text kopieren" und füge ihn in WhatsApp ein</li>
+            <li><strong>Bilder einfügen:</strong> 
+                <ul>
+                    <li><strong>Desktop:</strong> Klicke "Bild kopieren" und füge es direkt in WhatsApp ein (Strg+V)</li>
+                    <li><strong>Mobil:</strong> Lade Bilder herunter und teile sie aus der Galerie</li>
+                </ul>
+            </li>
+            <li><strong>Reihenfolge:</strong> Erst Bilder, dann Text (oder andersherum je nach Wunsch)</li>
+        </ol>
+    </div>
+    
+    <div class="export-actions">
+        <a href="{{ url_for('view_article', article_id=article.id) }}" class="btn btn-secondary">← Zurück zum Artikel</a>
+    </div>
+</div>
+
+<script>
+function copyText() {
+    const text = document.getElementById('whatsapp-text').textContent;
+    navigator.clipboard.writeText(text).then(function() {
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✓ Kopiert!';
+        btn.classList.add('btn-success');
+        setTimeout(function() {
+            btn.innerHTML = originalText;
+            btn.classList.remove('btn-success');
+        }, 2000);
+    }).catch(function(err) {
+        alert('Kopieren fehlgeschlagen: ' + err);
+    });
+}
+
+async function copyImage(imageId) {
+    const img = document.getElementById(imageId);
+    const btn = event.target;
+    
+    try {
+        // Bild als Blob laden
+        const response = await fetch(img.src);
+        const blob = await response.blob();
+        
+        // In Zwischenablage kopieren (funktioniert nur in modernen Browsern)
+        await navigator.clipboard.write([
+            new ClipboardItem({
+                [blob.type]: blob
+            })
+        ]);
+        
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✓ Kopiert!';
+        btn.classList.add('btn-success');
+        setTimeout(function() {
+            btn.innerHTML = originalText;
+            btn.classList.remove('btn-success');
+        }, 2000);
+    } catch (err) {
+        // Fallback: Download anbieten
+        alert('Automatisches Kopieren nicht unterstützt. Bitte nutze "Download" oder Rechtsklick → "Bild kopieren"');
+        console.error('Clipboard API error:', err);
+    }
+}
+</script>
+
+<style>
+.whatsapp-export {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.export-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border);
+}
+
+.export-header h1 {
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    font-size: 1.25rem;
+    color: var(--secondary);
+}
+
+.export-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.section-header h2 {
+    margin: 0;
+}
+
+.whatsapp-preview {
+    background: #e5ddd5;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.whatsapp-preview pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #000;
+}
+
+.export-images {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.export-image-item {
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.export-image-item img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.image-actions {
+    padding: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+    background: var(--light);
+}
+
+.export-instructions {
+    background: #fff3cd;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #ffc107;
+    margin-bottom: 1.5rem;
+}
+
+.export-instructions h3 {
+    margin-top: 0;
+    color: #856404;
+}
+
+.export-instructions ol,
+.export-instructions ul {
+    margin-left: 1.5rem;
+}
+
+.export-instructions li {
+    margin-bottom: 0.5rem;
+}
+
+.export-actions {
+    text-align: center;
+    padding-top: 1rem;
+}
+</style>
+{% endblock %}
