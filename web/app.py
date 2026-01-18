@@ -232,6 +232,15 @@ def allowed_file(filename):
 
 # ===== Routes =====
 
+# Health-Check Endpoint (ohne APP_PREFIX, damit Docker-Healthcheck unabhängig vom Prefix funktioniert)
+@app.route('/health')
+def health():
+    """Health-Check Endpoint für Docker und Monitoring"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'FakeDaily CMS'
+    }), 200
+
 # Root zeigt Reader (Public)
 @app.route(f'{APP_PREFIX}/')
 def root():

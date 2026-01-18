@@ -15,6 +15,28 @@ API_BASE = f"{BASE_URL}{APP_PREFIX}/admin/api"
 READER_BASE = f"{BASE_URL}{APP_PREFIX}/reader"
 
 
+class TestHealthCheck:
+    """Tests für Health-Check Endpoint"""
+    
+    def test_health_endpoint_without_prefix(self):
+        """Test: Health-Endpoint ist ohne APP_PREFIX erreichbar"""
+        response = requests.get(f"{BASE_URL}/health")
+        
+        assert response.status_code == 200
+        data = response.json()
+        
+        assert data['status'] == 'healthy'
+        assert 'service' in data
+    
+    def test_health_endpoint_returns_json(self):
+        """Test: Health-Endpoint liefert gültiges JSON"""
+        response = requests.get(f"{BASE_URL}/health")
+        
+        assert response.headers['Content-Type'].startswith('application/json')
+        data = response.json()
+        assert isinstance(data, dict)
+
+
 class TestExportAPI:
     """Tests für Export-API"""
     
