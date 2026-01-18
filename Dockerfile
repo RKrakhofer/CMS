@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y \
     bash \
     sqlite3 \
     jq \
+    libjpeg-dev \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Kopiere requirements zuerst (für besseres Caching)
