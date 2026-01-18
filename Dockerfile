@@ -4,10 +4,13 @@ FROM python:3.12-slim
 # Setze Arbeitsverzeichnis
 WORKDIR /app
 
-# Installiere System-Abhängigkeiten für Pillow
+# Installiere System-Abhängigkeiten für Pillow und CLI-Tools
 RUN apt-get update && apt-get install -y \
     fonts-dejavu-core \
     fonts-liberation \
+    bash \
+    sqlite3 \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Kopiere requirements zuerst (für besseres Caching)
