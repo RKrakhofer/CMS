@@ -491,6 +491,9 @@ location /cms/ {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
+    
+    # Wichtig: Erlaube Datei-Uploads bis 16MB
+    client_max_body_size 16M;
 }
 ```
 
@@ -502,6 +505,9 @@ location /news/ {
     proxy_pass http://localhost:5001/;
     proxy_set_header X-Forwarded-Prefix /news;
     # ... andere Headers ...
+    
+    # Wichtig: Erlaube Datei-Uploads bis 16MB
+    client_max_body_size 16M;
 }
 ```
 
@@ -516,6 +522,9 @@ location / {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header X-Forwarded-Host $host;
+    
+    # Wichtig: Erlaube Datei-Uploads bis 16MB
+    client_max_body_size 16M;
 }
 
 # Mit Sub-Path (z.B. /news/)
@@ -527,6 +536,9 @@ location /news/ {
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header X-Forwarded-Host $host;
     proxy_set_header X-Forwarded-Prefix /news;
+    
+    # Wichtig: Erlaube Datei-Uploads bis 16MB
+    client_max_body_size 16M;
 }
 ```
 
