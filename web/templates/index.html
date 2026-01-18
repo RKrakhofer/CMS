@@ -19,6 +19,7 @@
     <div class="view-toggle">
         <button class="btn btn-sm" id="gridBtn" onclick="setView('grid')">📊 Grid</button>
         <button class="btn btn-sm" id="listBtn" onclick="setView('list')">📋 Liste</button>
+        <button class="btn btn-sm" id="cardsBtn" onclick="setView('cards')">🗂️ Karten</button>
     </div>
 </div>
 
@@ -27,9 +28,9 @@
 {% set sort_by = sort_by|default('id') %}
 {% set sort_order = sort_order|default('desc') %}
 
-{% if view_mode == 'list' %}
-<!-- Listenansicht -->
-<div class="articles-list">
+{% if view_mode == 'list' or view_mode == 'cards' %}
+<!-- Listenansicht / Kartenansicht -->
+<div class="articles-list {% if view_mode == 'cards' %}view-cards{% endif %}">
     <table class="articles-table">
         <thead>
             <tr>
@@ -64,18 +65,18 @@
         <tbody>
         {% for article in articles %}
             <tr class="article-row {% if not article.published %}unpublished{% endif %}">
-                <td class="article-id">{{ article.id }}</td>
-                <td>
+                <td class="article-id" data-label="ID">{{ article.id }}</td>
+                <td data-label="Status">
                     {% if article.published %}
-                        <span class="badge badge-success">✓</span>
+                        <span class="badge badge-success">✓ Veröffentlicht</span>
                     {% else %}
-                        <span class="badge badge-draft">○</span>
+                        <span class="badge badge-draft">○ Entwurf</span>
                     {% endif %}
                 </td>
-                <td class="article-title">
+                <td class="article-title" data-label="Titel">
                     <a href="{{ url_for('view_article', article_id=article.id) }}">{{ article.title }}</a>
                 </td>
-                <td class="article-tags-cell">
+                <td class="article-tags-cell" data-label="Tags">
                     {% if article.tags %}
                         {% for tag in article.tags[:3] %}
                             <span class="tag tag-sm">{{ tag }}</span>
@@ -85,11 +86,11 @@
                         {% endif %}
                     {% endif %}
                 </td>
-                <td class="article-date">{{ article.created_at|datetime }}</td>
-                <td class="article-actions-cell">
-                    <a href="{{ url_for('view_article', article_id=article.id) }}" class="btn btn-sm" title="Ansehen">👁️</a>
-                    <a href="{{ url_for('edit_article', article_id=article.id) }}" class="btn btn-sm btn-secondary" title="Bearbeiten">✏️</a>
-                    <a href="{{ url_for('whatsapp_export', article_id=article.id) }}" class="btn btn-sm btn-secondary" title="WhatsApp Export">📱</a>
+                <td class="article-date" data-label="Datum">{{ article.created_at|datetime }}</td>
+                <td class="article-actions-cell" data-label="Aktionen">
+                    <a href="{{ url_for('view_article', article_id=article.id) }}" class="btn btn-sm" title="Ansehen">👁️ Ansehen</a>
+                    <a href="{{ url_for('edit_article', article_id=article.id) }}" class="btn btn-sm btn-secondary" title="Bearbeiten">✏️ Bearbeiten</a>
+                    <a href="{{ url_for('whatsapp_export', article_id=article.id) }}" class="btn btn-sm btn-secondary" title="WhatsApp Export">📱 WhatsApp</a>
                 </td>
             </tr>
         {% endfor %}
@@ -228,8 +229,8 @@ function getSortSettings() {
 function setView(mode) {
     localStorage.setItem('adminViewMode', mode);
     const url = new URL(window.location);
-    if (mode === 'list') {
-        url.searchParams.set('view', 'list');
+    if (mode === 'list' || mode === 'cards') {
+        url.searchParams.set('view', mode);
         // Sortiereinstellungen auch übernehmen
         const sortSettings = getSortSettings();
         url.searchParams.set('sort', sortSettings.sortBy);
@@ -245,14 +246,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const viewMode = getViewMode();
     const gridBtn = document.getElementById('gridBtn');
     const listBtn = document.getElementById('listBtn');
+    const cardsBtn = document.getElementById('cardsBtn');
     
     // Aktualisiere Button-Status
+    gridBtn.classList.remove('btn-primary');
+    listBtn.classList.remove('btn-primary');
+    cardsBtn.classList.remove('btn-primary');
+    
     if (viewMode === 'list') {
         listBtn.classList.add('btn-primary');
-        gridBtn.classList.remove('btn-primary');
+    } else if (viewMode === 'cards') {
+        cardsBtn.classList.add('btn-primary');
     } else {
         gridBtn.classList.add('btn-primary');
-        listBtn.classList.remove('btn-primary');
     }
 });
 </script>

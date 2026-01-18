@@ -22,11 +22,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Kopiere Anwendungscode
 COPY src/ src/
 COPY web/ web/
-COPY scripts/ scripts/
 COPY start_web.py .
 
 # Erstelle notwendige Verzeichnisse
-RUN mkdir -p database media/images
+RUN mkdir -p database media/images logs
 
 # Exponiere Port
 EXPOSE 5001
@@ -35,5 +34,5 @@ EXPOSE 5001
 ENV PYTHONUNBUFFERED=1
 ENV FLASK_ENV=production
 
-# Initialisiere Datenbank beim Start und starte dann Flask-App
-CMD python scripts/init_db.py && python start_web.py
+# Starte Flask-App (DB wird automatisch beim ersten Start von app.py initialisiert)
+CMD ["python", "start_web.py"]

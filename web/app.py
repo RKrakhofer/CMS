@@ -7,6 +7,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from datetime import datetime
+import sqlite3
 
 # Pfad zum src-Ordner hinzufügen
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -20,8 +21,67 @@ from db_manager import DatabaseManager
 from image_processor import ImageProcessor
 from whatsapp_formatter import WhatsAppFormatter
 
-# ===== Logging Setup =====
+# ===== Database Initialization =====
 BASE_DIR = Path(__file__).parent.parent
+DB_PATH = BASE_DIR / "database" / "articles.db"
+
+def init_database():
+    """Erstellt die Datenbank und Tabellen wenn sie nicht existieren"""
+    # Sicherstellen, dass der database-Ordner existiert
+    DB_PATH.parent.mkdir(exist_ok=True)
+    
+    # Verbindung zur Datenbank
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Articles Tabelle
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS articles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            author TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            published BOOLEAN DEFAULT 0,
+            tags TEXT
+        )
+    """)
+    
+    # Images Tabelle
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS images (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            article_id INTEGER,
+            filename TEXT NOT NULL,
+            filepath TEXT NOT NULL,
+            alt_text TEXT,
+            caption TEXT,
+            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+        )
+    """)
+    
+    # Index für schnellere Suche
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_articles_published 
+        ON articles(published)
+    """)
+    
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_images_article 
+        ON images(article_id)
+    """)
+    
+    conn.commit()
+    conn.close()
+    
+    print(f"✓ Datenbank bereit: {DB_PATH}")
+
+# DB beim Import initialisieren
+init_database()
+
+# ===== Logging Setup =====
 LOG_DIR = BASE_DIR / 'logs'
 LOG_DIR.mkdir(exist_ok=True)
 

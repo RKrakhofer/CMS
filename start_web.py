@@ -26,7 +26,7 @@ if __name__ == '__main__':
     print("=" * 60)
     print(f"\n📍 Server läuft auf: http://localhost:{port}")
     print("\n💡 Tipps:")
-    print("  - Datenbank initialisieren: python scripts/init_db.py")
+    print("  - Datenbank wird automatisch beim Start initialisiert")
     print("  - Logo hinzufügen: logo.png im Projektordner")
     print("  - Strg+C zum Beenden\n")
     

@@ -729,24 +729,6 @@ body {
     justify-content: flex-end;
 }
 
-.badge-success {
-    background: var(--success);
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.badge-draft {
-    background: var(--secondary);
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
 /* Responsive für Listenansicht */
 @media (max-width: 1024px) {
     .articles-table {
@@ -763,15 +745,99 @@ body {
     }
 }
 
+/* Kartenansicht für alle Bildschirmgrößen */
+.view-cards {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.view-cards .articles-table thead {
+    display: none !important;
+}
+
+.view-cards .articles-table,
+.view-cards .articles-table tbody,
+.view-cards .articles-table tr,
+.view-cards .articles-table td {
+    display: block !important;
+}
+
+.view-cards .articles-table tbody tr {
+    background: white;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid var(--border);
+}
+
+.view-cards .articles-table tbody tr:hover {
+    background: white;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.view-cards .articles-table td {
+    padding: 0.5rem 0;
+    border: none;
+    text-align: left;
+    position: relative;
+    padding-left: 40%;
+}
+
+.view-cards .articles-table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0;
+    width: 35%;
+    padding-right: 0.5rem;
+    font-weight: 600;
+    color: var(--secondary);
+    text-align: left;
+}
+
+.view-cards .articles-table td:first-child {
+    padding-top: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding-left: 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.view-cards .articles-table td:first-child::before {
+    display: none;
+}
+
+.view-cards .article-actions-cell {
+    padding-left: 0 !important;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    margin-top: 0.5rem;
+    justify-content: flex-start;
+}
+
+.view-cards .article-actions-cell::before {
+    display: none;
+}
+
+.view-cards .article-tags-cell {
+    padding-left: 0 !important;
+    display: block !important;
+}
+
+.view-cards .article-tags-cell::before {
+    display: block;
+    position: static;
+    width: auto;
+    margin-bottom: 0.25rem;
+}
+
+.view-cards .article-tags-cell .tag {
+    display: inline-block;
+}
+
 @media (max-width: 768px) {
-    .articles-list {
-        overflow-x: auto;
-    }
-    
-    .articles-table {
-        min-width: 800px;
-    }
-    
     .header-section {
         flex-direction: column;
         align-items: stretch;
@@ -786,4 +852,14 @@ body {
     .view-toggle {
         justify-content: center;
     }
+    
+    /* Mobile: Tabelle scrollbar machen für Liste-Ansicht */
+    .articles-list:not(.view-cards) {
+        overflow-x: auto;
+    }
+    
+    .articles-list:not(.view-cards) .articles-table {
+        min-width: 800px;
+    }
 }
+
