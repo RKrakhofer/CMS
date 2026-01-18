@@ -186,6 +186,8 @@ def index():
     """Startseite - Artikel-Liste"""
     published_only = request.args.get('published', 'all')
     search_query = request.args.get('q', '')
+    sort_by = request.args.get('sort', 'id')
+    sort_order = request.args.get('order', 'desc')
     
     if search_query:
         articles = db.search_articles(search_query)
@@ -194,13 +196,35 @@ def index():
     else:
         articles = db.get_all_articles()
     
+    # Sortierung anwenden
+    def get_sort_key(article):
+        if sort_by == 'id':
+            return article.get('id', 0)
+        elif sort_by == 'status':
+            return article.get('published', False)
+        elif sort_by == 'title':
+            return article.get('title', '').lower()
+        elif sort_by == 'tags':
+            tags = article.get('tags', [])
+            return len(tags) if tags else 0
+        elif sort_by == 'date':
+            return article.get('created_at', '')
+        return 0
+    
+    reverse = (sort_order == 'desc')
+    articles = sorted(articles, key=get_sort_key, reverse=reverse)
+    
     # Markdown zu HTML für Excerpts konvertieren
     for article in articles:
         excerpt_text = article['content'][:200]
         md.reset()
         article['excerpt_html'] = md.convert(excerpt_text)
     
-    return render_template('index.html', articles=articles, search_query=search_query)
+    return render_template('index.html', 
+                         articles=articles, 
+                         search_query=search_query,
+                         sort_by=sort_by,
+                         sort_order=sort_order)
 
 
 @app.route(f'{APP_PREFIX}/admin/article/<int:article_id>')
@@ -699,7 +723,8 @@ def import_articles_json():
                     content=article_data.get('content', ''),
                     author=article_data.get('author'),
                     published=article_data.get('published', False),
-                    tags=article_data.get('tags')
+                    tags=article_data.get('tags'),
+                    created_at=article_data.get('created_at')
                 )
                 imported += 1
                 

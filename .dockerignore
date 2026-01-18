@@ -47,6 +47,7 @@ tests/
 backup_*/
 export_*/
 *.tar.gz
+whatsapp_import_helper/
 
 # Temporäre Dateien
 *.log

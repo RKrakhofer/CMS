@@ -25,17 +25,35 @@ class DatabaseManager:
     # ===== Artikel-Operationen =====
     
     def add_article(self, title: str, content: str, author: str = None, 
-                   published: bool = False, tags: List[str] = None) -> int:
-        """Fügt einen neuen Artikel hinzu"""
+                   published: bool = False, tags: List[str] = None, 
+                   created_at: str = None) -> int:
+        """Fügt einen neuen Artikel hinzu
+        
+        Args:
+            title: Artikel-Titel
+            content: Artikel-Inhalt
+            author: Autor (optional)
+            published: Veröffentlicht-Status
+            tags: Liste von Tags
+            created_at: Erstellungsdatum im Format 'YYYY-MM-DD HH:MM:SS' (optional)
+        """
         conn = self.get_connection()
         cursor = conn.cursor()
         
         tags_json = json.dumps(tags) if tags else None
         
-        cursor.execute("""
-            INSERT INTO articles (title, content, author, published, tags)
-            VALUES (?, ?, ?, ?, ?)
-        """, (title, content, author, published, tags_json))
+        if created_at:
+            # Mit custom created_at Timestamp
+            cursor.execute("""
+                INSERT INTO articles (title, content, author, published, tags, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (title, content, author, published, tags_json, created_at, created_at))
+        else:
+            # Standardverhalten: DB setzt automatisch Timestamps
+            cursor.execute("""
+                INSERT INTO articles (title, content, author, published, tags)
+                VALUES (?, ?, ?, ?, ?)
+            """, (title, content, author, published, tags_json))
         
         article_id = cursor.lastrowid
         conn.commit()

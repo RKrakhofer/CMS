@@ -4,8 +4,6 @@
 # Exportiert alle Artikel als JSON und lädt zugehörige Bilder herunter
 #
 
-set -e
-
 # Konfiguration
 SERVER_URL="${1:-http://localhost:5001}"
 EXPORT_DIR="${2:-export_$(date +%Y%m%d_%H%M%S)}"
@@ -29,7 +27,7 @@ mkdir -p "$IMAGES_DIR"
 
 # 1. JSON-Export holen
 echo -e "${BLUE}[1/2]${NC} Hole JSON-Export..."
-if curl -f -s "$SERVER_URL/admin/api/export/articles" -o "$JSON_FILE"; then
+if curl -f -s "$SERVER_URL/cms/admin/api/export/articles" -o "$JSON_FILE"; then
     ARTICLE_COUNT=$(jq -r '.count' "$JSON_FILE")
     echo -e "${GREEN}✓${NC} $ARTICLE_COUNT Artikel exportiert → $JSON_FILE"
 else
@@ -72,8 +70,12 @@ else
     echo "{" > "$MAPPING_FILE"
     first_article=true
     
+    # Artikel-Daten in temporäre Datei schreiben (vermeidet Subshell-Problem)
+    ARTICLES_TMP=$(mktemp)
+    jq -c '.articles[] | select(.images and (.images | length) > 0) | {id: .id, images: [.images[].url]}' "$JSON_FILE" > "$ARTICLES_TMP"
+    
     # Für jeden Artikel: ID und Bilder extrahieren
-    jq -c '.articles[] | select(.images and (.images | length) > 0) | {id: .id, images: [.images[].url]}' "$JSON_FILE" | while IFS= read -r article_data; do
+    while IFS= read -r article_data; do
         article_id=$(echo "$article_data" | jq -r '.id')
         image_urls=$(echo "$article_data" | jq -r '.images[]')
         
@@ -124,7 +126,10 @@ else
         done
         
         echo -n "]" >> "$MAPPING_FILE"
-    done
+    done < "$ARTICLES_TMP"
+    
+    # Temporäre Datei löschen
+    rm -f "$ARTICLES_TMP"
     
     # Mapping-Datei schließen
     echo -e "\n}" >> "$MAPPING_FILE"
