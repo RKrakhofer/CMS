@@ -276,9 +276,18 @@ def index():
     
     # Markdown zu HTML für Excerpts konvertieren
     for article in articles:
-        excerpt_text = article['content'][:200]
+        # Ersten Absatz extrahieren (bis zum ersten doppelten Zeilenumbruch)
+        content = article['content']
+        first_paragraph = content.split('\n\n')[0] if '\n\n' in content else content[:200]
+        
         md.reset()
-        article['excerpt_html'] = md.convert(excerpt_text)
+        article['excerpt_html'] = md.convert(first_paragraph)
+        
+        # Falls der erste Absatz zu lang ist, auf 200 Zeichen kürzen
+        if len(first_paragraph) > 200:
+            truncated = first_paragraph[:200]
+            md.reset()
+            article['excerpt_html'] = md.convert(truncated) + '...'
     
     return render_template('index.html', 
                          articles=articles, 

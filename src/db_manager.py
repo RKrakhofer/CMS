@@ -90,7 +90,7 @@ class DatabaseManager:
         cursor = conn.cursor()
         
         if published_only:
-            cursor.execute("SELECT * FROM articles WHERE published = 1 ORDER BY created_at DESC")
+            cursor.execute("SELECT * FROM articles WHERE published = 1 ORDER BY updated_at DESC")
         else:
             cursor.execute("SELECT * FROM articles ORDER BY created_at DESC")
         
@@ -119,7 +119,7 @@ class DatabaseManager:
         cursor = conn.cursor()
         
         if published_only:
-            cursor.execute("SELECT * FROM articles WHERE published = 1 ORDER BY created_at DESC")
+            cursor.execute("SELECT * FROM articles WHERE published = 1 ORDER BY updated_at DESC")
         else:
             cursor.execute("SELECT * FROM articles ORDER BY created_at DESC")
         

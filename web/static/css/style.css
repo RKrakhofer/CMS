@@ -319,6 +319,44 @@ body {
     color: var(--secondary);
     margin-bottom: 1rem;
     line-height: 1.5;
+    overflow: hidden;
+}
+
+/* Markdown-Formatierung in Previews: nur ersten Absatz anzeigen */
+.article-preview > *:first-child {
+    margin-top: 0;
+}
+
+.article-preview > *:last-child {
+    margin-bottom: 0;
+}
+
+.article-preview p {
+    margin: 0 0 0.5rem 0;
+}
+
+.article-preview h1,
+.article-preview h2,
+.article-preview h3 {
+    font-size: 1em;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+}
+
+.article-preview ul,
+.article-preview ol {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.article-preview code {
+    background: var(--light);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+}
+
+.article-preview pre {
+    display: none; /* Code-Blöcke in Preview ausblenden */
 }
 
 .article-actions {
@@ -332,6 +370,7 @@ body {
     border-radius: 0.25rem;
     font-size: 0.75rem;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .badge-success {
@@ -824,13 +863,16 @@ body {
 .view-cards .article-tags-cell {
     padding-left: 0 !important;
     display: block !important;
+    position: relative;
 }
 
 .view-cards .article-tags-cell::before {
-    display: block;
-    position: static;
-    width: auto;
-    margin-bottom: 0.25rem;
+    display: block !important;
+    position: static !important;
+    width: auto !important;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--secondary);
 }
 
 .view-cards .article-tags-cell .tag {
