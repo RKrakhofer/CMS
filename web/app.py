@@ -20,6 +20,7 @@ import markdown
 from db_manager import DatabaseManager
 from image_processor import ImageProcessor
 from whatsapp_formatter import WhatsAppFormatter
+from auto_tagger import add_auto_tags_if_empty
 
 # ===== Database Initialization =====
 BASE_DIR = Path(__file__).parent.parent
@@ -338,6 +339,9 @@ def new_article():
             flash('Titel und Inhalt sind erforderlich', 'error')
             return render_template('edit_article.html', article=None)
         
+        # Auto-Tagging: Wenn keine Tags angegeben, automatisch generieren
+        tags = add_auto_tags_if_empty(tags, title, content)
+        
         # Artikel erstellen
         article_id = db.add_article(
             title=title,
@@ -387,6 +391,9 @@ def edit_article(article_id):
         if not title or not content:
             flash('Titel und Inhalt sind erforderlich', 'error')
             return render_template('edit_article.html', article=article)
+        
+        # Auto-Tagging: Wenn keine Tags angegeben, automatisch generieren
+        tags = add_auto_tags_if_empty(tags, title, content)
         
         # Artikel aktualisieren
         db.update_article(
@@ -779,13 +786,21 @@ def import_articles_json():
                     
                     if import_dt > existing_dt:
                         # Import ist neuer - aktualisieren
+                        tags = article_data.get('tags', [])
+                        # Auto-Tagging wenn keine Tags vorhanden
+                        tags = add_auto_tags_if_empty(
+                            tags,
+                            article_data.get('title', ''),
+                            article_data.get('content', '')
+                        )
+                        
                         db.update_article(
                             existing['id'],
                             title=article_data.get('title'),
                             content=article_data.get('content'),
                             author=article_data.get('author'),
                             published=article_data.get('published', False),
-                            tags=article_data.get('tags')
+                            tags=tags
                         )
                         updated += 1
                     else:
@@ -796,12 +811,20 @@ def import_articles_json():
                     skipped += 1
             else:
                 # Neuer Artikel - hinzufügen
+                tags = article_data.get('tags', [])
+                # Auto-Tagging wenn keine Tags vorhanden
+                tags = add_auto_tags_if_empty(
+                    tags,
+                    article_data.get('title', ''),
+                    article_data.get('content', '')
+                )
+                
                 db.add_article(
                     title=article_data.get('title'),
                     content=article_data.get('content', ''),
                     author=article_data.get('author'),
                     published=article_data.get('published', False),
-                    tags=article_data.get('tags'),
+                    tags=tags,
                     created_at=article_data.get('created_at')
                 )
                 imported += 1

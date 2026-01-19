@@ -69,48 +69,125 @@
 
 <script>
 function copyText() {
-    const text = document.getElementById('whatsapp-text').textContent;
-    navigator.clipboard.writeText(text).then(function() {
-        const btn = event.target;
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '✓ Kopiert!';
-        btn.classList.add('btn-success');
-        setTimeout(function() {
-            btn.innerHTML = originalText;
-            btn.classList.remove('btn-success');
-        }, 2000);
-    }).catch(function(err) {
-        alert('Kopieren fehlgeschlagen: ' + err);
-    });
+    const textElement = document.getElementById('whatsapp-text');
+    const text = textElement.textContent;
+    const btn = event.target;
+    
+    // Methode 1: Moderne Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            showSuccess(btn);
+        }).catch(function(err) {
+            console.error('Clipboard API failed:', err);
+            // Fallback zu Methode 2
+            copyTextFallback(text, btn);
+        });
+    } else {
+        // Fallback zu Methode 2
+        copyTextFallback(text, btn);
+    }
+}
+
+function copyTextFallback(text, btn) {
+    // Methode 2: Klassische Selektion + execCommand
+    try {
+        const textElement = document.getElementById('whatsapp-text');
+        
+        // Temporäres Textarea-Element für mobile Geräte
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.top = '0';
+        textarea.style.left = '0';
+        textarea.style.width = '2em';
+        textarea.style.height = '2em';
+        textarea.style.padding = '0';
+        textarea.style.border = 'none';
+        textarea.style.outline = 'none';
+        textarea.style.boxShadow = 'none';
+        textarea.style.background = 'transparent';
+        document.body.appendChild(textarea);
+        
+        // Für iOS
+        textarea.contentEditable = true;
+        textarea.readOnly = false;
+        
+        // Text selektieren
+        if (navigator.userAgent.match(/ipad|iphone/i)) {
+            const range = document.createRange();
+            range.selectNodeContents(textarea);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            textarea.setSelectionRange(0, 999999);
+        } else {
+            textarea.select();
+        }
+        
+        // Kopieren
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        
+        if (successful) {
+            showSuccess(btn);
+        } else {
+            throw new Error('execCommand failed');
+        }
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        alert('Kopieren fehlgeschlagen. Bitte markiere den Text manuell und kopiere ihn mit der Zwischenablage deines Geräts.');
+    }
 }
 
 async function copyImage(imageId) {
     const img = document.getElementById(imageId);
     const btn = event.target;
     
+    // Prüfe ob Clipboard API für Bilder unterstützt wird
+    if (!navigator.clipboard || !navigator.clipboard.write) {
+        showImageCopyNotSupported();
+        return;
+    }
+    
     try {
         // Bild als Blob laden
         const response = await fetch(img.src);
         const blob = await response.blob();
         
-        // In Zwischenablage kopieren (funktioniert nur in modernen Browsern)
+        // Prüfe ob der Blob-Typ unterstützt wird
+        if (!blob.type.startsWith('image/')) {
+            throw new Error('Invalid image type');
+        }
+        
+        // In Zwischenablage kopieren
         await navigator.clipboard.write([
             new ClipboardItem({
                 [blob.type]: blob
             })
         ]);
         
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '✓ Kopiert!';
-        btn.classList.add('btn-success');
-        setTimeout(function() {
-            btn.innerHTML = originalText;
-            btn.classList.remove('btn-success');
-        }, 2000);
+        showSuccess(btn);
     } catch (err) {
-        // Fallback: Download anbieten
-        alert('Automatisches Kopieren nicht unterstützt. Bitte nutze "Download" oder Rechtsklick → "Bild kopieren"');
-        console.error('Clipboard API error:', err);
+        console.error('Image copy failed:', err);
+        showImageCopyNotSupported();
+    }
+}
+
+function showSuccess(btn) {
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '✓ Kopiert!';
+    btn.classList.add('btn-success');
+    setTimeout(function() {
+        btn.innerHTML = originalText;
+        btn.classList.remove('btn-success');
+    }, 2000);
+}
+
+function showImageCopyNotSupported() {
+    if (confirm('Automatisches Kopieren wird auf diesem Gerät nicht unterstützt.\n\nMöchtest du das Bild stattdessen herunterladen?')) {
+        // Der Download-Button wird durch den bestehenden Download-Link gehandhabt
+        // Wir geben nur eine Meldung aus
+        alert('Bitte nutze den "Download" Button und teile das Bild dann aus deiner Galerie.');
     }
 }
 </script>
