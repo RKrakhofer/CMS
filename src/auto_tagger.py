@@ -147,7 +147,7 @@ TAG_RULES = {
         'waffenstillstand', 'friedensverhandlung', 'friedensvertrag',
         'kriegsverbrechen', 'völkermord', 'genozid', 'kriegsrecht',
         'genfer konvention', 'haager landkriegsordnung', 'un-charta',
-        'syrien', 'assad', 'is', 'islamischer staat', 'terror', 'terrorismus',
+        'syrien', 'assad', 'islamischer staat', 'terror', 'terrorismus',
         'al-qaida', 'taliban', 'hisbollah', 'hamas', 'israel', 'palästina',
         'gaza', 'westjordanland', 'iran', 'chamenei', 'revolution',
         'china', 'taiwan', 'nordkorea', 'südkorea', 'afghanistan', 'irak',
@@ -199,6 +199,8 @@ def generate_tags(title: str, content: str) -> List[str]:
     
     for tag, keywords in TAG_RULES.items():
         for keyword in keywords:
+            if len(keyword) < 3:
+                continue  # Ignoriere Keywords mit weniger als 3 Buchstaben
             if keyword in text_lower:
                 matched_tags.append(tag)
                 break  # Ein Match pro Tag-Kategorie reicht
