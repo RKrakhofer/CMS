@@ -8,6 +8,7 @@ from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from datetime import datetime
 import sqlite3
+from difflib import SequenceMatcher
 
 # Pfad zum src-Ordner hinzufügen
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -741,13 +742,76 @@ def export_articles_json():
     })
 
 
+# ============================================================================
+# SIMILARITY DETECTION (from docs/Aehnlichkeitserkennung.md)
+# ============================================================================
+
+def similarity(a: str, b: str) -> float:
+    """
+    Calculate similarity ratio between two strings using SequenceMatcher.
+    
+    Uses Longest Common Subsequence (LCS) algorithm:
+    ratio = 2.0 × M / T
+    where M = matching characters, T = total length
+    
+    Args:
+        a: First string
+        b: Second string
+        
+    Returns:
+        float: Similarity ratio between 0.0 (completely different) and 1.0 (identical)
+    """
+    return SequenceMatcher(None, a.lower(), b.lower()).ratio()
+
+
+def are_similar_articles(new_article: dict, existing_article: dict,
+                         title_threshold: float = 0.95,
+                         content_threshold: float = 0.90) -> bool:
+    """
+    Check if two articles are similar based on similarity thresholds.
+    
+    Thresholds (documented in docs/Aehnlichkeitserkennung.md):
+    - Title: 95% similarity = duplicate
+    - Content: 90% similarity = duplicate (first 500 chars)
+    
+    Args:
+        new_article: New article dict with 'title' and 'content'
+        existing_article: Existing article dict with 'title' and 'content'
+        title_threshold: Minimum title similarity (default: 0.95)
+        content_threshold: Minimum content similarity (default: 0.90)
+        
+    Returns:
+        bool: True if articles are considered similar/duplicates
+    """
+    title_sim = similarity(new_article.get('title', ''), existing_article.get('title', ''))
+    
+    # If titles are very similar, consider as duplicate
+    if title_sim > title_threshold:
+        return True
+    
+    # Check content similarity (first 500 chars)
+    content1 = new_article.get('content', '')[:500]
+    content2 = existing_article.get('content', '')[:500]
+    content_sim = similarity(content1, content2)
+    
+    if content_sim > content_threshold:
+        return True
+    
+    return False
+
+
 @app.route(f'{APP_PREFIX}/admin/api/import/articles', methods=['POST'])
 def import_articles_json():
-    """Importiert Artikel aus JSON
+    """Importiert Artikel aus JSON mit Ähnlichkeitserkennung
     
     Importiert einen Artikel nur wenn:
-    - Der Titel noch nicht in der DB ist, ODER
-    - Der Titel existiert, aber updated_at im Import neuer ist
+    - Der Titel noch nicht in der DB ist UND
+    - Kein ähnlicher Artikel existiert (Similarity Detection), ODER
+    - Der Titel/ähnlicher Artikel existiert, aber updated_at im Import neuer ist
+    
+    Similarity Thresholds (siehe docs/Aehnlichkeitserkennung.md):
+    - Title: 95% Ähnlichkeit = Duplikat
+    - Content: 90% Ähnlichkeit (erste 500 Zeichen) = Duplikat
     """
     if not request.json:
         return jsonify({'success': False, 'error': 'Kein JSON-Body'}), 400
@@ -773,6 +837,15 @@ def import_articles_json():
             
             # Prüfen ob Artikel mit diesem Titel bereits existiert
             existing = db.get_article_by_title(title)
+            
+            # Wenn kein exakter Titel-Match: Prüfe auf ähnliche Artikel (Similarity Detection)
+            if not existing:
+                all_articles = db.get_all_articles()
+                for article in all_articles:
+                    if are_similar_articles(article_data, article):
+                        existing = article
+                        app_logger.info(f"Similarity detected: '{title}' ~ '{article['title']}' (using existing)")
+                        break
             
             if existing:
                 # Timestamps vergleichen

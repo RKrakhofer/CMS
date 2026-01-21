@@ -20,6 +20,8 @@ services:
       - FLASK_ENV=production
       - FLASK_DEBUG=false
       - PYTHONUNBUFFERED=1
+      # Zeitzone (Standard: UTC, Österreich: Europe/Vienna, Deutschland: Europe/Berlin)
+      - TZ=Europe/Vienna
       # Optional: App unter Sub-Path deployen (z.B. /cms)
       - APP_PREFIX=/cms
       # Optional: Site-Titel ändern
