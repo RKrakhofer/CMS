@@ -181,6 +181,60 @@ def log_security_event(message, level=logging.INFO, user_agent=None):
         msg += f" - Browser: {simplified_ua}"
     security_logger.log(level, msg, extra=extra)
 
+# DSGVO-konforme Request-Logging
+class GDPRRequestLogger:
+    """Custom Request Logger mit IP-Anonymisierung für DSGVO-Konformität"""
+    
+    def __init__(self, app):
+        self.app = app
+        
+        # Disable Werkzeug default request logging
+        import logging
+        werkzeug_logger = logging.getLogger('werkzeug')
+        werkzeug_logger.setLevel(logging.WARNING)  # Nur Warnings/Errors
+        
+        # Custom Request Logger
+        self.request_logger = logging.getLogger('fakedaily.requests')
+        self.request_logger.setLevel(logging.INFO)
+        
+        # Handler für Request-Log
+        request_handler = TimedRotatingFileHandler(
+            LOG_DIR / 'requests.log',
+            when='midnight',
+            interval=1,
+            backupCount=30,
+            encoding='utf-8'
+        )
+        request_handler.setLevel(logging.INFO)
+        request_formatter = logging.Formatter(
+            '%(asctime)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        request_handler.setFormatter(request_formatter)
+        self.request_logger.addHandler(request_handler)
+        
+        # Console Handler mit anonymisierten IPs
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(request_formatter)
+        self.request_logger.addHandler(console_handler)
+        
+        # Hook into Flask's request cycle
+        @app.after_request
+        def log_request(response):
+            # Skip health checks (zu viel Noise)
+            if request.path == '/health':
+                return response
+            
+            # Anonymisierte IP
+            anonymized_ip = anonymize_ip(request.remote_addr)
+            
+            # Log-Format ähnlich zu Werkzeug, aber mit anonymisierter IP
+            self.request_logger.info(
+                f'{anonymized_ip} - - "{request.method} {request.path} {request.environ.get("SERVER_PROTOCOL")}" {response.status_code} -'
+            )
+            return response
+
 # App-Prefix für Sub-Path-Deployment (z.B. /fakedaily)
 APP_PREFIX = os.environ.get('APP_PREFIX', '').rstrip('/')
 
@@ -215,6 +269,9 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
 # Database Manager initialisieren
 db = DatabaseManager()
+
+# GDPR Request Logger initialisieren
+GDPRRequestLogger(app)
 
 # Markdown-Konverter
 md = markdown.Markdown(extensions=['fenced_code', 'tables', 'nl2br'])
