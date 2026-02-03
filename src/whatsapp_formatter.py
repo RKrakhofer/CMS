@@ -26,28 +26,43 @@ class WhatsAppFormatter:
         """
         text = markdown_text
         
-        # Überschriften (# bis ######) - Temporär mit Platzhalter ersetzen
-        text = re.sub(r'^######\s+(.+)$', r'⚡BOLD⚡\1⚡BOLD⚡', text, flags=re.MULTILINE)
-        text = re.sub(r'^#####\s+(.+)$', r'⚡BOLD⚡\1⚡BOLD⚡', text, flags=re.MULTILINE)
-        text = re.sub(r'^####\s+(.+)$', r'⚡BOLD⚡\1⚡BOLD⚡', text, flags=re.MULTILINE)
-        text = re.sub(r'^###\s+(.+)$', r'⚡BOLD⚡\1⚡BOLD⚡', text, flags=re.MULTILINE)
-        text = re.sub(r'^##\s+(.+)$', r'⚡BOLD⚡\1⚡BOLD⚡', text, flags=re.MULTILINE)
-        text = re.sub(r'^#\s+(.+)$', r'⚡BOLD⚡\1⚡BOLD⚡\n', text, flags=re.MULTILINE)
+        # Normalisiere Überschriften: Entferne Newlines innerhalb von Überschriften-Zeilen
+        # Dies behebt das Problem, wenn Überschriften über mehrere Zeilen gehen
+        def normalize_heading(match):
+            hashes = match.group(1)
+            content = match.group(2)
+            # Entferne alle Newlines und reduziere Whitespace
+            content = re.sub(r'\s+', ' ', content).strip()
+            return f"{hashes} {content}"
+        
+        text = re.sub(r'^(#{1,6})\s+(.+?)$', normalize_heading, text, flags=re.MULTILINE)
+        
+        # Überschriften (# bis ######) - Temporär mit Platzhalter ersetzen und Whitespace trimmen
+        text = re.sub(r'^######\s+(.+?)\s*$', r'⚡BOLD⚡\1⚡BOLD⚡', text, flags=re.MULTILINE)
+        text = re.sub(r'^#####\s+(.+?)\s*$', r'⚡BOLD⚡\1⚡BOLD⚡', text, flags=re.MULTILINE)
+        text = re.sub(r'^####\s+(.+?)\s*$', r'⚡BOLD⚡\1⚡BOLD⚡', text, flags=re.MULTILINE)
+        text = re.sub(r'^###\s+(.+?)\s*$', r'⚡BOLD⚡\1⚡BOLD⚡', text, flags=re.MULTILINE)
+        text = re.sub(r'^##\s+(.+?)\s*$', r'⚡BOLD⚡\1⚡BOLD⚡', text, flags=re.MULTILINE)
+        text = re.sub(r'^#\s+(.+?)\s*$', r'⚡BOLD⚡\1⚡BOLD⚡\n', text, flags=re.MULTILINE)
         
         # Fett: **text** oder __text__ → Temporärer Platzhalter
-        text = re.sub(r'\*\*(.+?)\*\*', r'⚡BOLD⚡\1⚡BOLD⚡', text)
-        text = re.sub(r'__(.+?)__', r'⚡BOLD⚡\1⚡BOLD⚡', text)
+        # DOTALL-Flag für mehrzeilige Bold-Texte
+        text = re.sub(r'\*\*(.+?)\*\*', r'⚡BOLD⚡\1⚡BOLD⚡', text, flags=re.DOTALL)
+        text = re.sub(r'__(.+?)__', r'⚡BOLD⚡\1⚡BOLD⚡', text, flags=re.DOTALL)
         
         # Kursiv: *text* oder _text_ → _text_
         # Jetzt können wir sicher * durch _ ersetzen, da alle Bold-Marker geschützt sind
-        text = re.sub(r'(?<![⚡\*])\*(?!\*)(.+?)(?<!\*)\*(?![⚡\*])', r'_\1_', text)
-        text = re.sub(r'(?<!_)_(?!_)(.+?)(?<!_)_(?!_)', r'_\1_', text)
+        # DOTALL-Flag für mehrzeilige Kursiv-Texte
+        text = re.sub(r'(?<![⚡\*])\*(?!\*)(.+?)(?<!\*)\*(?![⚡\*])', r'_\1_', text, flags=re.DOTALL)
         
-        # Platzhalter durch WhatsApp-Bold ersetzen
-        text = text.replace('⚡BOLD⚡', '*')
+        # Platzhalter durch WhatsApp-Bold ersetzen und Whitespace trimmen
+        def clean_bold(match):
+            content = match.group(1).strip()
+            return f"*{content}*"
+        text = re.sub(r'⚡BOLD⚡(.+?)⚡BOLD⚡', clean_bold, text, flags=re.DOTALL)
         
         # Durchgestrichen: ~~text~~ → ~text~
-        text = re.sub(r'~~(.+?)~~', r'~\1~', text)
+        text = re.sub(r'~~(.+?)~~', r'~\1~', text, flags=re.DOTALL)
         
         # Code inline: `code` → ```code```
         text = re.sub(r'`([^`]+)`', r'```\1```', text)
@@ -69,6 +84,11 @@ class WhatsAppFormatter:
         
         # Mehrfache Leerzeilen reduzieren
         text = re.sub(r'\n{3,}', '\n\n', text)
+        
+        # Entferne führende/nachfolgende Whitespace bei jeder Zeile
+        lines = text.split('\n')
+        lines = [line.rstrip() for line in lines]
+        text = '\n'.join(lines)
         
         return text.strip()
     
