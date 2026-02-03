@@ -145,7 +145,7 @@ async function copyImage(imageId) {
     
     // Prüfe ob Clipboard API für Bilder unterstützt wird
     if (!navigator.clipboard || !navigator.clipboard.write) {
-        showImageCopyNotSupported();
+        showImageCopyNotSupported(img);
         return;
     }
     
@@ -169,7 +169,7 @@ async function copyImage(imageId) {
         showSuccess(btn);
     } catch (err) {
         console.error('Image copy failed:', err);
-        showImageCopyNotSupported();
+        showImageCopyNotSupported(img);
     }
 }
 
@@ -183,11 +183,17 @@ function showSuccess(btn) {
     }, 2000);
 }
 
-function showImageCopyNotSupported() {
+function showImageCopyNotSupported(img) {
     if (confirm('Automatisches Kopieren wird auf diesem Gerät nicht unterstützt.\n\nMöchtest du das Bild stattdessen herunterladen?')) {
-        // Der Download-Button wird durch den bestehenden Download-Link gehandhabt
-        // Wir geben nur eine Meldung aus
-        alert('Bitte nutze den "Download" Button und teile das Bild dann aus deiner Galerie.');
+        // Finde den Download-Link im gleichen Container
+        const container = img.closest('.export-image-item');
+        const downloadLink = container.querySelector('a[download]');
+        if (downloadLink) {
+            downloadLink.click();
+        } else {
+            // Fallback: Bild in neuem Tab öffnen
+            window.open(img.src, '_blank');
+        }
     }
 }
 </script>

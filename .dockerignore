@@ -38,6 +38,9 @@ database/
 # Media Files (wird über Volume gemountet)
 media/
 
+# Import-Daten (werden nicht deployed)
+import/
+
 # Dokumentation
 README.md
 *.md

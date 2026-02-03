@@ -53,13 +53,24 @@ class WhatsAppFormatter:
         # Kursiv: *text* oder _text_ → _text_
         # Jetzt können wir sicher * durch _ ersetzen, da alle Bold-Marker geschützt sind
         # DOTALL-Flag für mehrzeilige Kursiv-Texte
-        text = re.sub(r'(?<![⚡\*])\*(?!\*)(.+?)(?<!\*)\*(?![⚡\*])', r'_\1_', text, flags=re.DOTALL)
+        text = re.sub(r'(?<![⚡\*])\*(?!\*)(.+?)(?<!\*)\*(?![⚡\*])', r'⚡ITALIC⚡\1⚡ITALIC⚡', text, flags=re.DOTALL)
         
-        # Platzhalter durch WhatsApp-Bold ersetzen und Whitespace trimmen
+        # Platzhalter durch WhatsApp-Formatierung ersetzen und Newlines entfernen
+        # WhatsApp unterstützt keine mehrzeilige Formatierung!
         def clean_bold(match):
-            content = match.group(1).strip()
+            content = match.group(1)
+            # Entferne Newlines und reduziere Whitespace
+            content = re.sub(r'\s+', ' ', content).strip()
             return f"*{content}*"
+        
+        def clean_italic(match):
+            content = match.group(1)
+            # Entferne Newlines und reduziere Whitespace
+            content = re.sub(r'\s+', ' ', content).strip()
+            return f"_{content}_"
+        
         text = re.sub(r'⚡BOLD⚡(.+?)⚡BOLD⚡', clean_bold, text, flags=re.DOTALL)
+        text = re.sub(r'⚡ITALIC⚡(.+?)⚡ITALIC⚡', clean_italic, text, flags=re.DOTALL)
         
         # Durchgestrichen: ~~text~~ → ~text~
         text = re.sub(r'~~(.+?)~~', r'~\1~', text, flags=re.DOTALL)
