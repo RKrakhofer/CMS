@@ -21,7 +21,29 @@ from auto_tagger import add_auto_tags_if_empty
 tags = add_auto_tags_if_empty(tags, title, content)
 ```
 
-### 2. Bestehende Tags bleiben erhalten
+### 2. Wortgrenzen-basiertes Matching (seit Februar 2026)
+
+Die Tag-Erkennung verwendet **Regex-Wortgrenzen** (`\b`), um False Positives zu vermeiden:
+
+```python
+# ✅ Richtig: Nur vollständige Wörter werden gematcht
+"organ" matched in "Das Organ arbeitet"
+"organ" matched NICHT in "Organisationsplan"
+
+# ✅ Weitere Beispiele
+"kontrolle" matched in "Die Kontrolle funktioniert"
+"kontrolle" matched NICHT in "Plausibilitätskontrollen"
+
+"cia" matched in "Die CIA ermittelt"
+"cia" matched NICHT in "Social Media"
+```
+
+**Vorteile:**
+- Keine False Positives durch Teilwort-Matches
+- Präzisere und relevantere Tags
+- Bessere Filterbarkeit der Artikel
+
+### 3. Bestehende Tags bleiben erhalten
 
 Wenn bereits Tags vorhanden sind, werden diese **nicht überschrieben**:
 
@@ -95,10 +117,23 @@ tags = add_auto_tags_if_empty(
 
 ## Testen
 
-Teste die Auto-Tagging-Funktion mit dem Test-Skript:
+### Unit Tests
+
+Teste die Auto-Tagging-Funktion mit pytest:
 
 ```bash
-python3 test_auto_tagging.py
+python -m pytest tests/test_auto_tagger.py -v
+```
+
+**Wichtige Testfälle:**
+- `test_no_false_positive_for_partial_word_matches` - Verhindert Regressions zu False Positives
+- `test_whole_word_match_for_chef` - Verifiziert Wortgrenzen-Matching
+- Alle 28 Tests sollten bestehen
+
+### Manuelle Tests
+
+```bash
+python test_auto_tagging.py
 ```
 
 ## Beispiele
@@ -107,12 +142,43 @@ python3 test_auto_tagging.py
 # Beispiel 1: Politik Österreich + Energie
 Titel: "Kickl plant massive Energiewende"
 Content: "FPÖ-Chef Herbert Kickl kündigte an, dass Österreich massiv in Solarenergie investieren wird."
-→ Tags: ['Energie', 'Politik Österreich']
+→ TRe-Tagging bestehender Artikel
 
-# Beispiel 2: Politik USA + Technologie
-Titel: "Trump kündigt neue KI-Initiative an"
-Content: "US-Präsident Trump präsentiert neues Programm für künstliche Intelligenz mit Elon Musk."
-→ Tags: ['Politik USA', 'Technologie']
+Um alle Artikel mit der verbesserten Logik neu zu taggen:
+
+```bash
+# Lokal
+python retag_all_articles.py
+
+# Auf dem Server
+ssh uu@stage "cd FakeDaily && cat retag_all_articles.py | docker exec -i cms python"
+```
+
+**Ergebnis:** Entfernt False Positives und wendet aktuelle Tag-Regeln an.
+
+## Bekannte False Positives (behoben)
+
+Diese Probleme wurden am 4. Februar 2026 behoben:
+
+| Keyword | Kategorie | False Match in | Problem |
+|---------|-----------|----------------|---------|
+| `organ` | Gesundheit | **Organ**isationsplan | Teilwort-Match |
+| `kontrolle` | Lebensmittel | Plausibilitäts**kontrollen** | Teilwort-Match |
+| `cia` | Politik USA | So**cia**l Media | Teilwort-Match |
+| `gehalt` | Wirtschaft | ein**gehalten** | Teilwort-Match |
+| `scheidung` | Gesellschaft | Ent**scheidung** | Teilwort-Match |
+| `haft` | Justiz | Gesells**chaft** | Teilwort-Match |
+
+**Lösung:** Wortgrenzen-Regex (`\b keyword \b`) statt einfachem Substring-Matching.
+
+## Vorteile
+
+- ✅ **Konsistente Tags** - Alle Artikel erhalten relevante Tags
+- ✅ **Zeitersparnis** - Keine manuelle Tag-Eingabe bei jedem Artikel
+- ✅ **Optionaler Override** - Manuelle Tags haben immer Vorrang
+- ✅ **Einfach erweiterbar** - Neue Kategorien und Keywords können jederzeit hinzugefügt werden
+- ✅ **Präzise Erkennung** - Keine False Positives durch Wortgrenzen-Matching
+- ✅ **Getestet** - 28 Unit-Tests mit Regression-Tests für bekannte Probleme
 
 # Beispiel 3: Wissenschaft + Politik Österreich
 Titel: "Neue Studie zur Erderwärmung"
