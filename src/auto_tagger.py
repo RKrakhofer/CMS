@@ -1,8 +1,58 @@
 """
-Auto-Tagging für Artikel basierend auf Inhalt und Titel
+Auto-Tagging für Artikel basierend auf Inhalt und Titel mit Kontextanalyse
 """
 import re
-from typing import List
+from typing import List, Dict, Set
+
+# Negative Keywords: Wenn diese in der Nähe eines Keywords stehen, wird der Tag NICHT vergeben
+NEGATIVE_CONTEXT = {
+    'Gesundheit': {
+        'organ': ['strafvollzug', 'justiz', 'polizei', 'behörde', 'staat', 'verwaltung', 'institution', 'europarat', 'kontrolle', 'regierung', 'gericht'],
+        'herz': ['hand', 'stein', 'löwe', 'dame'],  # "Herz aus Stein", "Hand aufs Herz", "Herz-Dame" (Karten)
+        'blut': ['bad', 'rache', 'blutrache'],  # "Blutbad", "Blutrache" ist Gewalt, nicht Gesundheit
+        'kammer': ['anwalt', 'rechts', 'wirtschafts', 'handels', 'arbeit', 'parlament', 'abgeordneten'],  # Institutionen vs. Herzkammer
+        'zelle': ['gefängnis', 'haft', 'knast', 'terror', 'schläfer', 'widerstand'],  # Gefängniszelle, Terrorzelle vs. biologische Zelle
+        'virus': ['computer', 'software', 'hacker', 'cyber', 'malware', 'trojaner'],  # Computer-Virus vs. biologischer Virus
+        'behandlung': ['thema', 'frage', 'problem', 'vertrag', 'gleich', 'anders', 'diskriminier'],  # allgemeine Behandlung vs. medizinische
+        'therapie': ['schock', 'wirtschaft', 'finanz', 'währung'],  # Schocktherapie (Wirtschaft) vs. medizinisch
+        'kultur': ['kunst', 'musik', 'theater', 'film', 'literatur', 'museum', 'festival', 'gesellschaft', 'tradition'],  # Kulturszene vs. Bakterienkultur
+        'krebs': ['sternzeichen', 'horoskop', 'tierkreis', 'tier'],  # Sternzeichen/Tier vs. Krankheit
+        'depression': ['wirtschaft', 'rezession', 'konjunktur', 'börse', 'finanzkrise'],  # Wirtschaftsdepression vs. psychische Depression
+        'fall': ['unfall', 'absturz', 'sturz', 'höhe', 'frei'],  # Fall/Sturz vs. medizinischer Fall (aber "Krankheitsfall" ist OK)
+    },
+    'Wirtschaft': {
+        'unternehmen': ['militär', 'armee', 'angriff', 'offensive'],  # "militärische Unternehmung"
+        'bank': ['sitz', 'park', 'sand', 'fluss', 'ufer', 'schulbank'],  # Sitzbank, Sandbank vs. Finanzinstitut
+        'gold': ['medaille', 'olympia', 'sport', 'wettbewerb', 'sieger', 'gewinner', 'pokal', 'gewinnt', 'gewonnen', 'holt', 'geholt', 'österreich', 'deutschland'],  # Goldmedaille vs. Edelmetall
+        'gewinn': ['lotto', 'glücksspiel', 'wette', 'casino'],  # Spielgewinn vs. Unternehmensgewinn
+    },
+    'Gesundheit (Krone)': {
+        'krone': ['zahn', 'zähn'],  # Zahnkrone gehört zu Gesundheit, NICHT Wirtschaft
+    },
+    'Wissenschaft': {
+        'studie': ['film', 'künstler', 'photo', 'foto', 'aufnahme', 'recording'],  # "Filmstudio", "Fotostudio"
+    },
+    'Technologie': {
+        'virus': ['grippe', 'corona', 'covid', 'influenza', 'pandemie', 'erkrankung', 'infektion', 'impf'],  # biologischer Virus vs. Computer
+    },
+    'Medien': {
+        'presse': ['druck', 'maschine', 'hydraulik', 'werkstatt', 'pressen', 'druckmaschine'],  # mechanische Presse vs. Medien-Presse
+    },
+    'Energie': {
+        'solar': ['system', 'planet', 'stern', 'astronomie', 'weltall'],  # Solarsystem vs. Solarenergie
+        'gas': ['gift', 'tränen', 'kampf', 'waffe', 'chemie'],  # Giftgas, Tränengas vs. Energiegas
+    },
+    'Militär': {
+        'offensive': ['fußball', 'sport', 'sturm', 'angriff', 'stürmer'],  # Sport-Offensive vs. militärisch (wenn im Sportkontext)
+    },
+    'Justiz': {
+        'fall': ['sturz', 'absturz', 'unfall', 'höhe', 'tief'],  # Sturz/Fall vs. Rechtsfall
+        'zeuge': ['wurde', 'werden', 'geworden'],  # "Zeuge werden" (allgemein erleben) vs. juristischer Zeuge
+    }
+}
+
+# Kontext-Fenster: Wie viele Wörter vor/nach dem Keyword werden geprüft
+CONTEXT_WINDOW = 5
 
 # Tag-Kategorien mit Keywords
 TAG_RULES = {
@@ -55,7 +105,8 @@ TAG_RULES = {
         'bankrott', 'fusion', 'übernahme', 'gold', 'silber', 'rohstoff',
         'kupfer', 'öl', 'gas', 'immobilien', 'wohnung', 'miete', 'baubranche',
         'einzelhandel', 'konsum', 'umsatz', 'gewinn', 'verlust', 'dividende',
-        'oxfam', 'milliardär', 'vermögen', 'saks', 'warenhaus', 'geberit', 'sika'
+        'oxfam', 'milliardär', 'vermögen', 'saks', 'warenhaus', 'geberit', 'sika',
+        'nationalbank', 'zentralbank', 'leitzins', 'zinsen', 'zinssatz'
     ],
     'Wissenschaft': [
         'wissenschaft', 'forschung', 'studie', 'experte', 'professor', 'universität',
@@ -76,7 +127,9 @@ TAG_RULES = {
         'biomasse', 'biogas', 'energiespeicher', 'batterie', 'akkumulator',
         'wasserstoff', 'elektrolyse', 'brennstoffzelle', 'energieeffizienz',
         'wärmepumpe', 'fernwärme', 'heizung', 'dämmung', 'isolation',
-        'gasspeicher', 'lng', 'pipeline', 'druschba', 'nord stream'
+        'gasspeicher', 'lng', 'pipeline', 'druschba', 'nord stream',
+        'solaranlage', 'solarenergie', 'solarpanel', 'sonnenenergie',
+        'gaspreise', 'erdgas', 'energiekosten'
     ],
     'Medien': [
         'medien', 'presse', 'zeitung', 'fernsehen', 'orf', 'journalis', 
@@ -110,14 +163,16 @@ TAG_RULES = {
         'corona', 'covid', 'pandemie', 'epidemie', 'virus', 'grippe',
         'influenza', 'erkältung', 'fieber', 'husten', 'schnupfen',
         'krebs', 'tumor', 'chemotherapie', 'bestrahlung', 'onkologie',
-        'herz', 'herzinfarkt', 'schlaganfall', 'diabetes', 'bluthochdruck',
+        'herzinfarkt', 'schlaganfall', 'diabetes', 'bluthochdruck',
         'übergewicht', 'adipositas', 'ernährung', 'diät', 'abnehmen',
         'alkohol', 'sucht', 'droge', 'rauchen', 'nikotin', 'tabak',
         'mental health', 'psyche', 'depression', 'burnout', 'stress',
         'angststörung', 'psychiatrie', 'psychotherapie', 'trauma',
         'pflegeheim', 'altenheim', 'altenpflege', 'krankenpflege',
         'gesundheitsversorgung', 'krankenkasse', 'versicherung', 'pharma',
-        'haut', 'transplantation', 'organ', 'spende', 'blut', 'plasma'
+        'haut', 'transplantation', 'organspende', 'organtransplantation', 'spenderorgan', 'spende', 'blutspende', 'plasma',
+        'stammzelle', 'stammzellenforschung', 'zelltherapie', 'antibiotika', 'resistenz', 'bakterie',
+        'zahnkrone', 'zahnbehandlung', 'zahnarzt'
     ],
     'Justiz': [
         'gericht', 'richter', 'justiz', 'anwalt', 'klage', 'urteil', 'prozess',
@@ -128,6 +183,7 @@ TAG_RULES = {
         'verfassungsrecht', 'völkerrecht', 'menschenrecht', 'grundrecht',
         'verurteilung', 'freispruch', 'strafe', 'haft', 'gefängnis',
         'haftstrafe', 'geldstrafe', 'bewährung', 'untersuchungshaft',
+        'strafvollzug', 'justizvollzug', 'resozialisierung', 'rehabilitation',
         'polizei', 'ermittlung', 'durchsuchung', 'festnahme', 'razzia',
         'verdächtig', 'täter', 'opfer', 'zeuge', 'aussage', 'beweis',
         'gutachten', 'sachverständig', 'forensik', 'kriminalistik',
@@ -183,8 +239,46 @@ TAG_RULES = {
 }
 
 
+def check_negative_context(text_lower: str, keyword: str, tag: str, match_pos: int) -> bool:
+    """Prüft, ob negative Kontextwörter in der Nähe des Keywords stehen
+    
+    Args:
+        text_lower: Der gesamte Text (lowercase)
+        keyword: Das gefundene Keyword
+        tag: Die Tag-Kategorie
+        match_pos: Position des Matches im Text
+        
+    Returns:
+        True wenn negativer Kontext gefunden wurde (Tag NICHT vergeben), False sonst
+    """
+    if tag not in NEGATIVE_CONTEXT or keyword not in NEGATIVE_CONTEXT[tag]:
+        return False  # Keine negativen Regeln für dieses Keyword
+    
+    negative_words = NEGATIVE_CONTEXT[tag][keyword]
+    
+    # Extrahiere Text rund um das Keyword (±CONTEXT_WINDOW Wörter)
+    words = text_lower.split()
+    # Finde die Wortposition des Keywords
+    text_before_match = text_lower[:match_pos]
+    word_index = len(text_before_match.split())
+    
+    # Bestimme Start- und End-Index für Kontextfenster
+    start_idx = max(0, word_index - CONTEXT_WINDOW)
+    end_idx = min(len(words), word_index + CONTEXT_WINDOW + 1)
+    
+    context_words = words[start_idx:end_idx]
+    context_text = ' '.join(context_words)
+    
+    # Prüfe ob eines der negativen Wörter im Kontext vorkommt
+    for neg_word in negative_words:
+        if re.search(r'\b' + re.escape(neg_word) + r'\b', context_text):
+            return True  # Negativer Kontext gefunden
+    
+    return False
+
+
 def generate_tags(title: str, content: str) -> List[str]:
-    """Generiert Tags basierend auf Titel und Inhalt
+    """Generiert Tags basierend auf Titel und Inhalt mit Kontextanalyse
     
     Args:
         title: Artikel-Titel
@@ -205,7 +299,13 @@ def generate_tags(title: str, content: str) -> List[str]:
             # Verwende Wortgrenzen-Regex, um nur vollständige Wörter zu matchen
             # \b = Wortgrenze (verhindert Matches in Teilwörtern)
             pattern = r'\b' + re.escape(keyword) + r'\b'
-            if re.search(pattern, text_lower):
+            match = re.search(pattern, text_lower)
+            
+            if match:
+                # Prüfe auf negativen Kontext
+                if check_negative_context(text_lower, keyword, tag, match.start()):
+                    continue  # Überspringe diesen Tag wegen negativem Kontext
+                
                 matched_tags.append(tag)
                 break  # Ein Match pro Tag-Kategorie reicht
     

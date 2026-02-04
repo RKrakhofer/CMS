@@ -43,7 +43,65 @@ Die Tag-Erkennung verwendet **Regex-Wortgrenzen** (`\b`), um False Positives zu 
 - Präzisere und relevantere Tags
 - Bessere Filterbarkeit der Artikel
 
-### 3. Bestehende Tags bleiben erhalten
+### 3. Kontextbezogenes Tagging mit negativen Keywords (seit Februar 2026)
+
+Das System analysiert den **Kontext** mehrdeutiger Begriffe und verhindert falsche Tag-Zuordnungen:
+
+```python
+# ✅ Kontext-Analyse verhindert falsche Tags
+
+# "Organ" im Kontext von Behörden → KEIN Gesundheit-Tag
+"Das Organ des Strafvollzugs arbeitet effizient"
+→ Tag: Justiz (NICHT Gesundheit)
+
+"Der Europarat als Organ der Kontrolle"
+→ Tag: Politik EU (NICHT Gesundheit)
+
+# "Organ" im medizinischen Kontext → Gesundheit-Tag
+"Das Organ muss transplantiert werden"
+→ Tag: Gesundheit ✓
+
+"Die Organspende rettet Leben"
+→ Tag: Gesundheit ✓
+```
+
+**Negative Kontext-Regeln:**
+
+Die Regeln in `NEGATIVE_CONTEXT` definieren Wörter, die einen Tag **verhindern**, wenn sie in der Nähe (±5 Wörter) eines Keywords stehen:
+
+```python
+NEGATIVE_CONTEXT = {
+    'Gesundheit': {
+        'organ': ['strafvollzug', 'justiz', 'polizei', 'behörde', 
+                  'staat', 'verwaltung', 'institution', 'europarat', 'kontrolle'],
+        'herz': ['hand', 'stein'],  # "Herz aus Stein", "Hand aufs Herz"
+        'blut': ['bad'],  # "Blutbad" ist Gewalt, nicht Gesundheit
+    },
+    # ...
+}
+```
+
+**Weitere Beispiele:**
+
+```python
+# ✗ "Herz aus Stein" → KEIN Gesundheit-Tag
+# ✗ "Hand aufs Herz" → KEIN Gesundheit-Tag
+# ✓ "Herzinfarkt" → Gesundheit ✓
+
+# ✗ "Blutbad in der Arena" → KEIN Gesundheit-Tag
+# ✓ "Blutspende im Krankenhaus" → Gesundheit ✓
+
+# ✗ "Militärische Unternehmung" → KEIN Wirtschaft-Tag
+# ✓ "Das Unternehmen meldet Insolvenz" → Wirtschaft ✓
+```
+
+**Vorteile:**
+- Verhindert semantisch falsche Tag-Zuordnungen
+- Berücksichtigt Mehrdeutigkeit von Wörtern
+- Intelligentere Tag-Generierung basierend auf Kontext
+- Reduziert manuelle Korrekturen
+
+### 4. Bestehende Tags bleiben erhalten
 
 Wenn bereits Tags vorhanden sind, werden diese **nicht überschrieben**:
 
@@ -81,6 +139,8 @@ Folgende Tag-Kategorien werden automatisch erkannt:
 
 ## Tag-Regeln erweitern
 
+### Neue Keywords hinzufügen
+
 Um neue Keywords hinzuzufügen oder neue Kategorien zu erstellen, bearbeite [src/auto_tagger.py](../src/auto_tagger.py):
 
 ```python
@@ -91,6 +151,31 @@ TAG_RULES = {
     # ...
 }
 ```
+
+### Negative Kontext-Regeln hinzufügen
+
+Wenn ein Keyword mehrdeutig ist (z.B. "Organ" = Körperteil vs. Behörde), füge negative Kontext-Regeln hinzu:
+
+```python
+NEGATIVE_CONTEXT = {
+    'Tag-Kategorie': {
+        'mehrdeutiges_keyword': ['kontext_wort1', 'kontext_wort2'],
+    }
+}
+```
+
+**Beispiel:**
+
+```python
+NEGATIVE_CONTEXT = {
+    'Gesundheit': {
+        # Wenn "organ" zusammen mit diesen Wörtern vorkommt → KEIN Gesundheit-Tag
+        'organ': ['strafvollzug', 'justiz', 'polizei', 'behörde', 'staat'],
+    }
+}
+```
+
+Das System prüft automatisch ±5 Wörter rund um das Keyword. Wird ein negatives Kontextwort gefunden, wird der Tag **nicht** vergeben.
 
 ## Integration in der App
 
