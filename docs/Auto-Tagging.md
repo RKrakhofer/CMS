@@ -305,7 +305,75 @@ spaCy würde nur Sinn machen bei:
 Die spaCy-Implementierung ist verfügbar in [`src/auto_tagger_spacy.py`](../src/auto_tagger_spacy.py) (nicht produktiv).
 
 ---
+## Alternative Ansätze (nicht implementiert)
 
+### Vote-basierte Tag-Priorisierung
+
+**Konzept:** Wenn mehrere Tags durch dasselbe Keyword ausgelöst werden, zählen alle Keyword-Matches pro Tag und behalten nur den Tag mit den meisten Matches.
+
+**Beispiel:**
+```
+Artikel: "Neue Drohne mit KI-Technologie für militärische Aufklärung"
+
+Keywords:
+- "drohne" → Technologie, Militär (mehrdeutig)
+- "ki" → Technologie
+- "technologie" → Technologie
+- "militärische" → Militär
+- "aufklärung" → Militär
+
+Vote-Ergebnis:
+- Technologie: 3 Matches
+- Militär: 3 Matches
+→ Gleichstand: Beide Tags behalten (oder nach Priorität entscheiden)
+```
+
+**Warum nicht verwendet:**
+
+❌ **Black Box** - Schwer nachvollziehbar, warum ein Tag entfernt wurde  
+❌ **Unflexibel** - Kann nicht zwischen legitimen Multi-Tags (bakterie → Wissenschaft + Gesundheit) und False Positives (laufen → Ermittlungen vs. Sport) unterscheiden  
+❌ **Kalibrierung** - Schwellenwert schwer zu bestimmen (2 Matches? 30%?)  
+❌ **Edge Cases** - Bei Gleichstand unklar, welcher Tag bevorzugt wird  
+❌ **Overhead** - Zusätzliche Komplexität ohne messbaren Mehrwert bei 15 Kategorien
+
+### Schwellenwert-basierte Tag-Vergabe
+
+**Konzept:** Ein mehrdeutiges Keyword löst einen Tag nur aus, wenn mindestens N weitere Keywords vom selben Tag matchen (z.B. N=2).
+
+**Beispiel:**
+```
+Artikel: "Die Drohne fliegt"
+
+Keywords:
+- "drohne" → Technologie, Militär (mehrdeutig)
+
+Schwellenwert: Mindestens 2 Matches pro Tag
+→ Keiner der Tags erfüllt Schwellenwert
+→ Kein Tag vergeben (❌ Fehler - Artikel ist über Drohnen!)
+```
+
+**Warum nicht verwendet:**
+
+❌ **Zu restriktiv** - Kurze Artikel bekommen keine Tags  
+❌ **Domänenspezifisch** - Schwellenwert müsste pro Tag-Kategorie kalibriert werden  
+❌ **Wartbarkeit** - Schwer zu verstehen, warum ein Artikel keinen Tag bekommt
+
+### Statistische TF-IDF / Topic Modeling
+
+**Konzept:** Term Frequency-Inverse Document Frequency oder LDA Topic Modeling zur automatischen Tag-Erkennung.
+
+**Warum nicht verwendet:**
+
+❌ **Trainingsdaten** - Benötigt große Menge an gelabelten Artikeln  
+❌ **Overhead** - Zu komplex für 15 vordefinierte Kategorien  
+❌ **Transparenz** - Schwer nachvollziehbar und wartbar  
+❌ **Latenz** - Modell-Inference langsamer als Regel-basiert
+
+---
+
+**Designentscheidung:** Negative Kontext-Regeln sind der optimale Trade-off zwischen Präzision, Transparenz und Wartbarkeit für Fake Daily mit ~15 Kategorien.
+
+---
 ## Integration in der App
 
 ### Web-UI (app.py)
