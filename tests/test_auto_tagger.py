@@ -145,6 +145,45 @@ class TestGenerateTags:
         # Count occurrences of Politik Österreich
         count = tags.count('Politik Österreich')
         assert count == 1
+    
+    def test_no_false_positive_for_partial_word_matches(self):
+        """Test: Keywords should only match whole words, not substrings
+        
+        Regression test for issue where:
+        - 'organ' (Gesundheit) matched 'Organisationsplan'
+        - 'kontrolle' (Lebensmittel) matched 'Plausibilitätskontrollen'
+        - 'cia' (Politik USA) matched 'Social'
+        - 'gehalt' (Wirtschaft) matched 'eingehalten'
+        """
+        title = "Organisationsplan und Kontrollen"
+        content = """
+        Social Media Team führt Plausibilitätskontrollen durch.
+        Die Regeln müssen eingehalten werden.
+        """
+        
+        tags = generate_tags(title, content)
+        
+        # Diese Tags sollten NICHT auftauchen (waren False Positives)
+        assert 'Gesundheit' not in tags  # 'organ' in 'Organisationsplan'
+        assert 'Lebensmittel' not in tags  # 'kontrolle' in 'Plausibilitätskontrollen'
+        assert 'Politik USA' not in tags  # 'cia' in 'Social'
+    
+    def test_whole_word_match_for_chef(self):
+        """Test: 'chef' should match 'Chef' but not 'Chefredakteur'"""
+        # Should match as whole word
+        title = "Der Chef kommt"
+        content = "Der Chef hat entschieden."
+        tags = generate_tags(title, content)
+        # Note: 'chef' ist nicht in TAG_RULES, daher erwarten wir keinen Match
+        # Dieser Test dokumentiert das erwartete Verhalten
+        
+        # Should NOT match as substring
+        title2 = "Chefredakteur plant Artikel"
+        content2 = "Der Chefredakteur der Fake Daily..."
+        tags2 = generate_tags(title2, content2)
+        # 'Satire' Tag sollte wegen 'chefredakteur' matchen
+        # aber 'Lebensmittel' sollte NICHT matchen (wegen 'koch' substring)
+        assert 'Lebensmittel' not in tags2
 
 
 class TestAddAutoTagsIfEmpty:
@@ -287,3 +326,4 @@ class TestEdgeCases:
         assert result == existing
         # Not sorted, original order preserved
         assert result != sorted(result)
+

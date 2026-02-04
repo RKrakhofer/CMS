@@ -201,7 +201,11 @@ def generate_tags(title: str, content: str) -> List[str]:
         for keyword in keywords:
             if len(keyword) < 3:
                 continue  # Ignoriere Keywords mit weniger als 3 Buchstaben
-            if keyword in text_lower:
+            
+            # Verwende Wortgrenzen-Regex, um nur vollständige Wörter zu matchen
+            # \b = Wortgrenze (verhindert Matches in Teilwörtern)
+            pattern = r'\b' + re.escape(keyword) + r'\b'
+            if re.search(pattern, text_lower):
                 matched_tags.append(tag)
                 break  # Ein Match pro Tag-Kategorie reicht
     
