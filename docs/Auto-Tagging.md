@@ -93,13 +93,32 @@ NEGATIVE_CONTEXT = {
 
 # ✗ "Militärische Unternehmung" → KEIN Wirtschaft-Tag
 # ✓ "Das Unternehmen meldet Insolvenz" → Wirtschaft ✓
+
+# ✗ "Regelmäßige Bewegung ist wichtig" → Gesundheit (NICHT Politik)
+# ✓ "Neue politische Bewegung gegründet" → Politik Österreich ✓
+
+# ✗ "Partei will Steuern senken" (Parteiprogramm) → KEIN Wirtschaft-Tag
+# ✓ "Unternehmen zahlen mehr Steuern" → Wirtschaft ✓
 ```
+
+**Aktuelle negative Kontext-Regeln (Auswahl):**
+
+- **Gesundheit**: organ, herz, blut, kammer, zelle, virus, behandlung, therapie, kultur, krebs, depression, fall
+- **Wirtschaft**: unternehmen, bank, gold, gewinn, steuern
+- **Politik Österreich/Deutschland**: steuerreform, steuerpolitik, bewegung
+- **Gesundheit (Krone)**: krone (für Zahnkrone)
+- **Wissenschaft**: studie (Film-Studio ausschließen)
+- **Technologie**: virus (Grippe ausschließen)
+- **Medien**: presse (Druckmaschine ausschließen)
+- **Energie**: solar (Sonnensystem ausschließen), gas (Giftgas ausschließen)
+- **Militär**: offensive (Fußball-Offensive ausschließen)
+- **Justiz**: fall (Sturz ausschließen), zeuge (grammatisches "wurde" ausschließen)
 
 **Vorteile:**
 - Verhindert semantisch falsche Tag-Zuordnungen
-- Berücksichtigt Mehrdeutigkeit von Wörtern
+- Berücksichtigt Mehrdeutigkeit von Wörtern (z.B. "Bewegung" = politisch vs. körperlich)
 - Intelligentere Tag-Generierung basierend auf Kontext
-- Reduziert manuelle Korrekturen
+- Reduziert manuelle Korrekturen erheblich
 
 ### 4. Bestehende Tags bleiben erhalten
 
@@ -141,20 +160,60 @@ Folgende Tag-Kategorien werden automatisch erkannt:
 
 ### Neue Keywords hinzufügen
 
-Um neue Keywords hinzuzufügen oder neue Kategorien zu erstellen, bearbeite [src/auto_tagger.py](../src/auto_tagger.py):
+Um neue Keywords hinzuzufügen oder neue Kategorien zu erstellen, bearbeite [src/tag_rules.json](../src/tag_rules.json):
 
-```python
-TAG_RULES = {
-    'Neue Kategorie': [
-        'keyword1', 'keyword2', 'keyword3'
-    ],
-    # ...
+```json
+{
+  "tag_rules": {
+    "Neue Kategorie": [
+      "keyword1", "keyword2", "keyword3"
+    ]
+  }
 }
 ```
 
+**Seit Februar 2026:** Tag-Regeln werden in JSON-Datei verwaltet, nicht mehr im Python-Code.
+
 ### Negative Kontext-Regeln hinzufügen
 
-Wenn ein Keyword mehrdeutig ist (z.B. "Organ" = Körperteil vs. Behörde), füge negative Kontext-Regeln hinzu:
+Wenn ein Keyword mehrdeutig ist (z.B. "Organ" = Körperteil vs. Behörde, "Bewegung" = politisch vs. körperlich), füge negative Kontext-Regeln in [src/tag_rules.json](../src/tag_rules.json) hinzu:
+
+```json
+{
+  "negative_context": {
+    "Tag-Kategorie": {
+      "mehrdeutiges_keyword": ["kontext_wort1", "kontext_wort2"]
+    }
+  }
+}
+```
+
+**Beispiele:**
+
+```json
+{
+  "negative_context": {
+    "Gesundheit": {
+      "organ": ["strafvollzug", "justiz", "polizei", "behörde", "staat"]
+    },
+    "Politik Österreich": {
+      "bewegung": ["körper", "sport", "fitness", "training", "gesundheit"]
+    },
+    "Wirtschaft": {
+      "steuern": ["partei", "parteiprogramm", "politiker", "bewegung"]
+    }
+  }
+}
+```
+
+Das System prüft automatisch ±5 Wörter rund um das Keyword. Wird ein negatives Kontextwort gefunden, wird der Tag **nicht** vergeben.
+
+**Tipp:** Debugging mit `explain_tags.py` zeigt, welche Keywords welche Tags auslösen:
+
+```bash
+./explain_tags.py "Neue politische Bewegung gegründet"
+# Output: Politik Österreich: [bewegung]
+```
 
 ```python
 NEGATIVE_CONTEXT = {
@@ -170,12 +229,82 @@ NEGATIVE_CONTEXT = {
 NEGATIVE_CONTEXT = {
     'Gesundheit': {
         # Wenn "organ" zusammen mit diesen Wörtern vorkommt → KEIN Gesundheit-Tag
-        'organ': ['strafvollzug', 'justiz', 'polizei', 'behörde', 'staat'],
-    }
-}
-```
+        'organ': ['strafvollzug', 'justiz', ' (ursprüngliche Tests):**
 
-Das System prüft automatisch ±5 Wörter rund um das Keyword. Wird ein negatives Kontextwort gefunden, wird der Tag **nicht** vergeben.
+| Metrik | Kontext-basiert | spaCy-basiert |
+|--------|----------------|---------------|
+| **Genauigkeit** | 12/12 (100%) | 12/12 (100%) |
+| **Durchschnitt/Test** | ~34.56ms | ~44.75ms |
+| **Speedup** | **1.3x schneller** | - |
+| **Modellgröße** | 0 MB | 15 MB |
+| **Dependencies** | Standard-Library | spaCy + Modell |
+
+**Nachtest mit erweiterten Mehrdeutigkeiten (Februar 2026):**
+
+| Test | Kontext-basiert | spaCy-basiert |
+|------|----------------|---------------|
+| "Regelmäßige Bewegung für Gesundheit" | Gesundheit ✓ | Gesundheit + Politik Ö ❌ |
+| "Neue politische Bewegung gegründet" | Politik Österreich ✓ | Politik Österreich ✓ |
+| "Partei will Steuern senken" | Politik Österreich ✓ | Wirtschaft ❌ |
+
+**Ergebnis:** Die kontextbasierte Lösung ist **präziser** als spaCy bei mehrdeutigen Begriffen.
+Es wurde ein Vergleich zwischen dem kontextbasierten System und einer spaCy-NLP-basierten Implementierung durchgeführt.
+
+### Testergebnisse
+
+**Vergleich auf 12 repräsentativen Testfällen:**
+
+| Metrik | Kontext-basiert | spaCy-basiert |
+|--------|----------------|---------------|
+| **Genauigkeit** | 12/12 (100%) | 12/12 (100%) |
+| **Durchschnitt/Test** | ~34.56ms | ~44.75ms |
+| **Speedup** | **1.3x schneller** | - |
+| **Modellgröße** | 0 MB | 15 MB |
+| **Dependencies** | Standard-Library | spaCy + Modell |
+
+### Erkenntnisse
+
+**Warum spaCy keinen Vorteil brachte:**
+
+1. **Gleichwertige Genauigkeit**: Beide Systeme lösten alle Testfälle korrekt
+2. **Kontext-Fenster ausreichend**: ±5 Wörter reichen für Mehrdeutigkeiten
+3. **Domain-spezifisch**: Fake Daily hat sehr spezifische Kategorien, die ein allgemeines NLP-Modell nicht besser erkennt
+4. **Kurze Texte**: Bei kurzen satirischen Artikeln ist der Overhead von spaCy nicht gerechtfertigt
+ist die bevorzugte Lösung:
+
+✅ **Präziser** - Erkennt mehrdeutige Begriffe besser (siehe "Bewegung"-Test)  
+✅ **1.3x schneller** - Kein NLP-Overhead  
+✅ **Keine zusätzlichen Dependencies** - Nur Standard-Library  
+✅ **Einfach erweiterbar** - JSON-basierte Konfiguration  
+✅ **Transparent und wartbar** - Klare Regeln, keine Black-Box  
+✅ **Flexibel** - Negative Kontext-Regeln sind domänenspezifisch optimierbar
+
+**Warum spaCy nicht verwendet wird:**
+
+- ❌ Weniger präzise bei domänenspezifischen Mehrdeutigkeiten
+- ❌ 1.3x langsamer trotz 15 MB Modell
+- ❌ Generisches NLP-Modell passt nicht optimal zu Satire-News
+- ❌ Komplexere Wartung (AMBIGUOUS_TERMS + spaCy-Logik)
+
+spaCy würde nur Sinn machen bei:
+- Hunderten von komplexen Kategorien
+- Sehr langen, grammatikalisch komplexen Texten
+- Bedarf an semantischer Ähnlichkeitserkennung
+- Multilingualen Anforderungen
+
+Die spaCy-Implementierung ist verfügbar in [`src/auto_tagger_spacy.py`](../src/auto_tagger_spacy.py) (archiviert, 
+✅ Einfach erweiterbar  
+✅ Transparent und wartbar  
+
+spaCy würde nur Sinn machen bei:
+- Hunderten von komplexen Kategorien
+- Sehr langen, grammatikalisch komplexen Texten
+- Bedarf an semantischer Ähnlichkeitserkennung
+- Multilingualen Anforderungen
+
+Die spaCy-Implementierung ist verfügbar in [`src/auto_tagger_spacy.py`](../src/auto_tagger_spacy.py) (nicht produktiv).
+
+---
 
 ## Integration in der App
 

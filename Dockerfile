@@ -25,6 +25,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ src/
 COPY web/ web/
 COPY start_web.py .
+COPY explain_tags.py .
 
 # Erstelle notwendige Verzeichnisse
 RUN mkdir -p database media/images logs
