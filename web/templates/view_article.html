@@ -3,12 +3,20 @@
 {% block title %}{{ article.title }} - {{ SITE_TITLE }}{% endblock %}
 
 {% block content %}
+<div id="vue-app">
+<script>
+window.__INITIAL_DATA__ = {
+    page: 'view_article',
+    article: {{ article|tojson }},
+    images: {{ images|tojson }}
+};
+</script>
 <div class="article-view">
     <div class="article-view-header">
         <h1>{{ article.title }}</h1>
         
         <div class="article-view-meta">
-            {% if article.author %}
+            {% if article.author and article.author != 'None' %}
                 <span>👤 {{ article.author }}</span>
             {% endif %}
             <span>📅 {{ article.created_at|datetime }}</span>
@@ -49,12 +57,13 @@
     </div>
     
     <div class="article-view-actions">
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">← Zurück</a>
-        <a href="{{ url_for('edit_article', article_id=article.id) }}" class="btn btn-primary">✏️ Bearbeiten</a>
-        <a href="{{ url_for('whatsapp_export', article_id=article.id) }}" class="btn btn-success">📱 WhatsApp Export</a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary" title="Zurück zur Übersicht" aria-label="Zurück">↩️</a>
+        <a href="{{ url_for('edit_article', article_id=article.id) }}" class="btn btn-primary" title="Bearbeiten" aria-label="Bearbeiten">✏️</a>
+        <a href="{{ url_for('whatsapp_export', article_id=article.id) }}" class="btn btn-success" title="WhatsApp Export" aria-label="WhatsApp Export">📱</a>
         <form method="POST" action="{{ url_for('delete_article', article_id=article.id) }}" style="display: inline;" onsubmit="return confirm('Wirklich löschen?');">
-            <button type="submit" class="btn btn-danger">🗑️ Löschen</button>
+            <button type="submit" class="btn btn-danger" title="Löschen" aria-label="Löschen">🗑️</button>
         </form>
     </div>
+</div>
 </div>
 {% endblock %}

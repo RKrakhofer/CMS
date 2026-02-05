@@ -3,6 +3,15 @@
 {% block title %}WhatsApp Export - {{ article.title }}{% endblock %}
 
 {% block content %}
+<div id="vue-app">
+<script>
+window.__INITIAL_DATA__ = {
+    page: 'whatsapp_export',
+    article: {{ article|tojson }},
+    whatsapp_text: {{ whatsapp_text|tojson }},
+    images: {{ images|tojson }}
+};
+</script>
 <div class="whatsapp-export">
     <div class="export-header">
         <h1>📱 WhatsApp Export</h1>
@@ -12,7 +21,7 @@
     <div class="export-section">
         <div class="section-header">
             <h2>📝 Text</h2>
-            <button class="btn btn-primary" onclick="copyText()">📋 Text kopieren</button>
+            <button class="btn btn-primary" onclick="copyPreText('whatsapp-text', this)" title="Text kopieren" aria-label="Text kopieren">📋</button>
         </div>
         <div class="whatsapp-preview">
             <pre id="whatsapp-text">{{ whatsapp_text }}</pre>
@@ -37,10 +46,8 @@
                 <div class="image-actions">
                     <a href="{{ url_for('serve_image', filename=image.filename) }}" 
                        download="{{ image.filename }}" 
-                       class="btn btn-sm btn-secondary">💾 Download</a>
-                    <button class="btn btn-sm btn-primary" onclick="copyImage('image-{{ loop.index }}')">
-                        📋 Bild kopieren
-                    </button>
+                       class="btn btn-sm btn-secondary" title="Download" aria-label="Download">💾</a>
+                    <button class="btn btn-sm btn-primary" onclick="copyImage('image-{{ loop.index }}')" title="Bild kopieren" aria-label="Bild kopieren">📋</button>
                 </div>
             </div>
             {% endfor %}
@@ -63,71 +70,43 @@
     </div>
     
     <div class="export-actions">
-        <a href="{{ url_for('view_article', article_id=article.id) }}" class="btn btn-secondary">← Zurück zum Artikel</a>
+        <a href="{{ url_for('view_article', article_id=article.id) }}" class="btn btn-secondary" title="Zurück zum Artikel" aria-label="Zurück zum Artikel">↩️</a>
     </div>
 </div>
 
 <script>
-function copyText() {
-    const textElement = document.getElementById('whatsapp-text');
-    const text = textElement.textContent;
-    const btn = event.target;
-    
-    // Methode 1: Moderne Clipboard API
+function copyPreText(elementId, btn) {
+    const textElement = document.getElementById(elementId);
+    if (!textElement) return;
+    const text = textElement.textContent || textElement.innerText || '';
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function() {
             showSuccess(btn);
         }).catch(function(err) {
             console.error('Clipboard API failed:', err);
-            // Fallback zu Methode 2
-            copyTextFallback(text, btn);
+            fallbackCopyText(text, btn);
         });
     } else {
-        // Fallback zu Methode 2
-        copyTextFallback(text, btn);
+        fallbackCopyText(text, btn);
     }
 }
 
-function copyTextFallback(text, btn) {
-    // Methode 2: Klassische Selektion + execCommand
+function fallbackCopyText(text, btn) {
     try {
-        const textElement = document.getElementById('whatsapp-text');
-        
-        // Temporäres Textarea-Element für mobile Geräte
         const textarea = document.createElement('textarea');
         textarea.value = text;
+        // Off-screen so it doesn't disrupt layout or focus
         textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
         textarea.style.top = '0';
-        textarea.style.left = '0';
-        textarea.style.width = '2em';
-        textarea.style.height = '2em';
-        textarea.style.padding = '0';
-        textarea.style.border = 'none';
-        textarea.style.outline = 'none';
-        textarea.style.boxShadow = 'none';
-        textarea.style.background = 'transparent';
         document.body.appendChild(textarea);
-        
-        // Für iOS
-        textarea.contentEditable = true;
-        textarea.readOnly = false;
-        
-        // Text selektieren
-        if (navigator.userAgent.match(/ipad|iphone/i)) {
-            const range = document.createRange();
-            range.selectNodeContents(textarea);
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
-            textarea.setSelectionRange(0, 999999);
-        } else {
-            textarea.select();
-        }
-        
-        // Kopieren
+        textarea.focus();
+        textarea.select();
+
         const successful = document.execCommand('copy');
         document.body.removeChild(textarea);
-        
+
         if (successful) {
             showSuccess(btn);
         } else {
@@ -135,7 +114,7 @@ function copyTextFallback(text, btn) {
         }
     } catch (err) {
         console.error('Fallback copy failed:', err);
-        alert('Kopieren fehlgeschlagen. Bitte markiere den Text manuell und kopiere ihn mit der Zwischenablage deines Geräts.');
+        alert('Kopieren fehlgeschlagen. Bitte markiere den Text manuell und kopiere ihn.');
     }
 }
 
@@ -309,4 +288,5 @@ function showImageCopyNotSupported(img) {
     padding-top: 1rem;
 }
 </style>
+</div>
 {% endblock %}

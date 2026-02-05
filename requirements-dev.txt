@@ -1,0 +1,4 @@
+black==24.10.0
+flake8==6.1.0
+# Use a compatible pytest release available on PyPI for CPython 3.12
+pytest==8.4.2

@@ -3,13 +3,26 @@
 {% block title %}{{ SITE_TITLE }} - Nachrichten{% endblock %}
 
 {% block content %}
+<div id="vue-app">
+<script>
+window.__INITIAL_DATA__ = {
+    page: 'reader_index',
+    articles: {{ articles|tojson }},
+    current_tag: {{ (current_tag|tojson) if current_tag else 'null' }}
+};
+</script>
 <div class="reader-header">
-    <h1>Aktuelle Artikel{% if current_tag %} - Tag: {{ current_tag }}{% endif %}</h1>
-    {% if current_tag %}
-        <p class="tag-filter-info">
-            <a href="{{ url_for('reader_index') }}" class="clear-filter">✕ Filter entfernen</a>
-        </p>
-    {% endif %}
+        <div style="display:flex;align-items:center;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
+            <h1 style="margin:0;">Aktuelle Artikel</h1>
+            {% if current_tag %}
+                <span class="tag-filter-badge">Filter: <strong style="margin-left:0.4rem;">{{ current_tag }}</strong>
+                    <a href="{{ url_for('reader_index') }}" class="clear-filter clear-filter-inline" title="Filter entfernen" aria-label="Filter entfernen">✕</a>
+                </span>
+            {% endif %}
+        </div>
+        {% if not current_tag %}
+            <p class="tag-filter-info">&nbsp;</p>
+        {% endif %}
 </div>
 
 {% if articles %}
@@ -53,4 +66,5 @@
     <p>Keine Artikel verfügbar.</p>
 </div>
 {% endif %}
+</div>
 {% endblock %}

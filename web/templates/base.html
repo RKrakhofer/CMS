@@ -24,15 +24,18 @@
     </nav>
 
     <main class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
+        {% set flashed = get_flashed_messages(with_categories=true) %}
+        {% if flashed %}
+            <div class="flash-messages">
+                {% for category, message in flashed %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <script>
+            window.__SERVER_TOASTS__ = {{ flashed|tojson }};
+        </script>
 
         {% block content %}{% endblock %}
     </main>
@@ -83,5 +86,13 @@
             });
         })();
     </script>
+
+    <script>
+        // Expose APP_PREFIX for the frontend JS
+        window.APP_PREFIX = "{{ APP_PREFIX or '' }}";
+    </script>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="{{ url_for('static', filename='js/vue_app.js') }}"></script>
 </body>
 </html>

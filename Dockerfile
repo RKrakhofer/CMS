@@ -17,9 +17,22 @@ RUN apt-get update && apt-get install -y \
 
 # Kopiere requirements zuerst (für besseres Caching)
 COPY requirements.txt .
+COPY requirements-dev.txt .
 
-# Installiere Python-Abhängigkeiten
+# Optional: install dev/test tools only when building with
+# --build-arg INSTALL_DEV=true. Default is false to keep
+# production images minimal and free of test tooling.
+ARG INSTALL_DEV=false
+
+# Install production dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install development/test dependencies only when requested
+RUN if [ "$INSTALL_DEV" = "true" ] ; then \
+            pip install --no-cache-dir -r requirements-dev.txt ; \
+        else \
+            echo "Skipping dev dependencies" ; \
+        fi
 
 # Kopiere Anwendungscode
 COPY src/ src/

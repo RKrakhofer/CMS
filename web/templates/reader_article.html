@@ -3,13 +3,21 @@
 {% block title %}{{ article.title }} - {{ SITE_TITLE }}{% endblock %}
 
 {% block content %}
+<div id="vue-app">
+<script>
+window.__INITIAL_DATA__ = {
+    page: 'reader_article',
+    article: {{ article|tojson }},
+    images: {{ images|tojson }}
+};
+</script>
 <article class="article-full">
     <header class="article-full-header">
         <h1>{{ article.title }}</h1>
         
         <div class="article-meta">
             <time>{{ article.created_at|datetime }}</time>
-            {% if article.author %}
+            {% if article.author and article.author != 'None' %}
                 <span class="separator">•</span>
                 <span>Von {{ article.author }}</span>
             {% endif %}
@@ -42,7 +50,8 @@
     </div>
     
     <footer class="article-footer">
-        <a href="{{ url_for('reader_index') }}" class="back-link">← Zurück zur Übersicht</a>
+        <a href="{{ url_for('reader_index') }}" class="back-link" title="Zurück zur Übersicht" aria-label="Zurück zur Übersicht">↩️</a>
     </footer>
 </article>
+</div>
 {% endblock %}

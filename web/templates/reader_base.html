@@ -12,10 +12,7 @@
             <a href="{{ url_for('reader_index') }}" class="logo">📰 {{ SITE_TITLE }}</a>
             <div class="nav-links">
                 <a href="{{ url_for('reader_index') }}">Alle Artikel</a>
-                <form method="GET" action="{{ url_for('reader_index') }}" class="search-form-inline">
-                    <input type="text" name="q" placeholder="Suchen..." class="search-input-small">
-                    <button type="submit" class="btn-icon">🔍</button>
-                </form>
+                
                 <div class="font-size-selector">
                     <button type="button" data-size="small">A</button>
                     <button type="button" data-size="medium" class="active">A</button>
@@ -75,5 +72,12 @@
             });
         })();
     </script>
+    <script>
+        // Expose APP_PREFIX for the frontend JS
+        window.APP_PREFIX = "{{ APP_PREFIX or '' }}";
+    </script>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="{{ url_for('static', filename='js/vue_app.js') }}"></script>
 </body>
 </html>

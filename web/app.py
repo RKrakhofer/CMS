@@ -378,6 +378,12 @@ def view_article(article_id):
     
     # Bilder laden
     images = db.get_images_for_article(article_id)
+    # Ensure each image has a `url` property for templates/clients
+    for img in images:
+        try:
+            img['url'] = url_for('serve_image', filename=img.get('filename'))
+        except Exception:
+            img['url'] = f"/media/images/{img.get('filename', '')}"
     
     return render_template('view_article.html', article=article, images=images)
 
@@ -426,7 +432,18 @@ def new_article():
             flash('Artikel erfolgreich erstellt!', 'success')
         return redirect(url_for('edit_article', article_id=article_id))
     
-    return render_template('edit_article.html', article=None)
+    # Vorschlag: aktuelles Erstellungsdatum/Uhrzeit für das neue Formular bereitstellen
+    from datetime import datetime
+    now = datetime.now()
+    article = {
+        'created_at': now.strftime('%Y-%m-%d %H:%M:%S'),
+        'created_at_input': now.strftime('%Y-%m-%dT%H:%M'),
+        'tags': [],
+        'tags_str': '',
+        'published': False,
+        'author': ''
+    }
+    return render_template('edit_article.html', article=article, images=[])
 
 
 @app.route(f'{APP_PREFIX}/admin/article/<int:article_id>/edit', methods=['GET', 'POST'])
@@ -448,7 +465,14 @@ def edit_article(article_id):
         
         if not title or not content:
             flash('Titel und Inhalt sind erforderlich', 'error')
-            return render_template('edit_article.html', article=article)
+            # Ensure images is provided to the template to avoid Jinja Undefined
+            images = db.get_images_for_article(article_id)
+            for img in images:
+                try:
+                    img['url'] = url_for('serve_image', filename=img.get('filename'))
+                except Exception:
+                    img['url'] = f"/media/images/{img.get('filename', '')}"
+            return render_template('edit_article.html', article=article, images=images)
         
         # Auto-Tagging: Wenn keine Tags angegeben, automatisch generieren
         tags = add_auto_tags_if_empty(tags, title, content)
@@ -499,7 +523,13 @@ def edit_article(article_id):
         article['created_at_input'] = datetime.now().strftime('%Y-%m-%dT%H:%M')
     
     images = db.get_images_for_article(article_id)
-    
+    # Add URL for each image so templates and client JS can use it
+    for img in images:
+        try:
+            img['url'] = url_for('serve_image', filename=img.get('filename'))
+        except Exception:
+            img['url'] = f"/media/images/{img.get('filename', '')}"
+
     return render_template('edit_article.html', article=article, images=images)
 
 
@@ -706,6 +736,11 @@ def whatsapp_export(article_id):
     
     # Bilder laden
     images = db.get_images_for_article(article_id)
+    for img in images:
+        try:
+            img['url'] = url_for('serve_image', filename=img.get('filename'))
+        except Exception:
+            img['url'] = f"/media/images/{img.get('filename', '')}"
     
     return render_template('whatsapp_export.html', 
                           article=article, 
